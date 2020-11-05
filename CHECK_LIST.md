@@ -5,7 +5,7 @@
 - [ ] Hash to number and then round the decimal place of hash
 - [ ] For the first time creation without the total depth being reached, need to create
 - [ ] Hash key needs to be randomly generated
-
+- [ ] Create tests for database.go
 
 
 - [ ] Documentation for database usage is hosted on docker images and webserver is enabled with a docker parameter
