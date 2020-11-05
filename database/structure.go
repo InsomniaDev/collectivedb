@@ -1,5 +1,7 @@
 package database
 
+import "time"
+
 // Database is the top level main main for this data
 type Database struct {
 	TotalDepth int
@@ -16,6 +18,7 @@ type data struct {
 
 // entry is the actual key and value stored in memory
 type entry struct {
-	key   string
-	value string
+	key     string
+	value   string
+	updated time.Time
 }
