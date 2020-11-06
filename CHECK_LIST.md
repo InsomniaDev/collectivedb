@@ -2,9 +2,9 @@
 
 ### In-memory Database
 - [x] Create structs
-- [ ] Hash to number and then round the decimal place of hash
+- [x] Hash to number and then round the decimal place of hash
 - [ ] For the first time creation without the total depth being reached, need to create
-- [ ] Hash key needs to be randomly generated
+- [x] Hash key needs to be randomly generated
 - [ ] Create tests for database.go
 
 

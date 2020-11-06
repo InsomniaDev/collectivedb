@@ -10,7 +10,6 @@ type Database struct {
 
 // data is used for each level in the datastructure to determine which hash to go into
 type data struct {
-	hashKey  string
 	depth    int
 	values   []entry
 	hashData []data
