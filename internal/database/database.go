@@ -8,37 +8,36 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var connection *bolt.DB
+
+func init() {
+	connection, _ = bolt.Open("database.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
+}
+
 func Update(key, value, bucket *string) (updated bool, updatedKey *string) {
 	if *key == "" || *value == "" {
 		return false, key
 	}
 
-	if db, err := bolt.Open("database.db", 0600, &bolt.Options{Timeout: 1 * time.Second}); err == nil {
-
-		err := db.Update(func(tx *bolt.Tx) error {
-			bucket, err := tx.CreateBucketIfNotExists([]byte(*bucket))
-			if err != nil {
-				log.Fatal(err)
-				return err
-			}
-
-			err = bucket.Put([]byte(*key), []byte(*value))
-			if err != nil {
-				log.Fatal(err)
-				return err
-			}
-			return nil
-		})
+	err := connection.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(*bucket))
 		if err != nil {
 			log.Fatal(err)
-			return false, key
+			return err
 		}
-		return true, key
-	} else {
-		log.Fatal(err)
-	}
 
-	return false, key
+		err = bucket.Put([]byte(*key), []byte(*value))
+		if err != nil {
+			log.Fatal(err)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+		return false, key
+	}
+	return true, key
 }
 
 func Get(key, bucket *string) (exists bool, value *[]byte) {
@@ -46,29 +45,21 @@ func Get(key, bucket *string) (exists bool, value *[]byte) {
 		return false, nil
 	}
 
-	if db, err := bolt.Open("database.db", 0600, &bolt.Options{Timeout: 1 * time.Second}); err == nil {
-		var value []byte
-		err = db.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte(*bucket))
-			if bucket == nil {
-				log.Error("get bucket err:", bucket, err)
-				return err
-			}
-
-			value = bucket.Get([]byte(*key))
-			return nil
-		})
-
-		if err != nil {
-			log.Error("get bucket err:", bucket, err)
-			return false, nil
+	err := connection.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(*bucket))
+		if bucket == nil {
+			return errors.New("bucket doesn't exist")
 		}
-		return true, &value
-	} else {
-		log.Fatal(err)
-	}
+		bv := bucket.Get([]byte(*key))
+		value = &bv
+		return nil
+	})
 
-	return false, nil
+	if err != nil {
+		log.Error("get bucket err:", bucket, err)
+		return false, nil
+	}
+	return true, value
 }
 
 func Delete(key, bucket *string) (deleted bool, err error) {
@@ -76,25 +67,20 @@ func Delete(key, bucket *string) (deleted bool, err error) {
 		return false, errors.New("unable to delete an empty key")
 	}
 
-	if db, err := bolt.Open("database.db", 0600, &bolt.Options{Timeout: 1 * time.Second}); err == nil {
-		err = db.Update(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte(*bucket))
-			if bucket == nil {
-				log.Error("get bucket err:", bucket, err)
-				return err
-			}
-
-			err = bucket.Delete([]byte(*key))
-			return err
-		})
-
-		if err != nil {
+	err = connection.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(*bucket))
+		if bucket == nil {
 			log.Error("get bucket err:", bucket, err)
-			return false, err
+			return err
 		}
-		return true, nil
-	} else {
-		log.Fatal(err)
+
+		err = bucket.Delete([]byte(*key))
+		return err
+	})
+
+	if err != nil {
+		log.Error("get bucket err:", bucket, err)
 		return false, err
 	}
+	return true, nil
 }
