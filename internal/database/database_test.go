@@ -110,6 +110,53 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func Test_getDatabase(t *testing.T) {
+	bucket := "test"
+	newBucket := "new"
+
+	type args struct {
+		bucket *string
+	}
+	tests := []struct {
+		name            string
+		args            args
+		wantConnections int
+	}{
+		{
+			name: "Retrieved",
+			args: args{
+				bucket: &bucket,
+			},
+			wantConnections: 1,
+		},
+		{
+			name: "Create New",
+			args: args{
+				bucket: &newBucket,
+			},
+			wantConnections: 2,
+		},
+		{
+			name: "Didn't create new",
+			args: args{
+				bucket: &newBucket,
+			},
+			wantConnections: 2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getDatabase(tt.args.bucket)
+			if got != nil {
+				if len(connections) != tt.wantConnections {
+					t.Errorf("Total Connections = %d, wantConnections %d", len(connections), tt.wantConnections)
+					return
+				}
+			}
+		})
+	}
+}
+
 func TestDelete(t *testing.T) {
 	bucket := "test"
 
@@ -133,7 +180,7 @@ func TestDelete(t *testing.T) {
 				bucket: &bucket,
 			},
 			wantDeleted: true,
-			wantErr: false,
+			wantErr:     false,
 		},
 		{
 			name: "Failure",
@@ -142,7 +189,7 @@ func TestDelete(t *testing.T) {
 				bucket: &bucket,
 			},
 			wantDeleted: false,
-			wantErr: true,
+			wantErr:     true,
 		},
 	}
 	for _, tt := range tests {

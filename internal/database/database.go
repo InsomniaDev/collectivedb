@@ -2,16 +2,46 @@ package database
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/InsomniaDev/bolt"
 	log "github.com/sirupsen/logrus"
 )
 
-var connection *bolt.DB
+var (
+	connection  *bolt.DB
+	connections map[*string]*bolt.DB
+)
 
 func init() {
-	connection, _ = bolt.Open("database.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
+	connections = make(map[*string]*bolt.DB)
+	// TODO: Need to adjust the bolt library to allow for multiple different databases
+	// TODO: Add a function to close all libraries on application shutdown
+	// connection, _ = bolt.Open("database.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
+}
+
+func getDatabase(bucket *string) *bolt.DB {
+	for connection := range connections {
+		if strings.Compare(*connection, *bucket) == 0 {
+			return connections[connection]
+		}
+	}
+
+	connection, err := bolt.Open(fmt.Sprintf("%s.db", *bucket), 0600, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		log.Fatal(err)
+	}
+	connections[bucket] = connection
+	return connection
+}
+
+func closeConnections() {
+	for connection := range connections {
+		connections[connection].Close()
+	}
+	connections = make(map[*string]*bolt.DB)
 }
 
 func Update(key, value, bucket *string) (updated bool, updatedKey *string) {
@@ -19,7 +49,7 @@ func Update(key, value, bucket *string) (updated bool, updatedKey *string) {
 		return false, key
 	}
 
-	err := connection.Update(func(tx *bolt.Tx) error {
+	err := getDatabase(bucket).Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(*bucket))
 		if err != nil {
 			log.Fatal(err)
@@ -45,7 +75,7 @@ func Get(key, bucket *string) (exists bool, value *[]byte) {
 		return false, nil
 	}
 
-	err := connection.View(func(tx *bolt.Tx) error {
+	err := getDatabase(bucket).View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(*bucket))
 		if bucket == nil {
 			return errors.New("bucket doesn't exist")
@@ -67,7 +97,7 @@ func Delete(key, bucket *string) (deleted bool, err error) {
 		return false, errors.New("unable to delete an empty key")
 	}
 
-	err = connection.Update(func(tx *bolt.Tx) error {
+	err = getDatabase(bucket).Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(*bucket))
 		if bucket == nil {
 			log.Error("get bucket err:", bucket, err)
