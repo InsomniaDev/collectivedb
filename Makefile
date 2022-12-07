@@ -1,4 +1,5 @@
 test:
+	make clean
 	go test ./... 
 
 clean:
