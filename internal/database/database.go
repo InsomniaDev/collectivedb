@@ -11,17 +11,16 @@ import (
 )
 
 var (
-	connection  *bolt.DB
+	// list of open database connections, each bucket translates to a database
 	connections map[*string]*bolt.DB
 )
 
 func init() {
 	connections = make(map[*string]*bolt.DB)
-	// TODO: Need to adjust the bolt library to allow for multiple different databases
-	// TODO: Add a function to close all libraries on application shutdown
-	// connection, _ = bolt.Open("database.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
 }
 
+// getDatabase
+// 		will return the open database if exists or create and return
 func getDatabase(bucket *string) *bolt.DB {
 	for connection := range connections {
 		if strings.Compare(*connection, *bucket) == 0 {
@@ -37,13 +36,17 @@ func getDatabase(bucket *string) *bolt.DB {
 	return connection
 }
 
-func closeConnections() {
+// CloseConnections
+// 		Responsible for safely closing all open database connections upon shutdown
+func CloseConnections() {
 	for connection := range connections {
 		connections[connection].Close()
 	}
 	connections = make(map[*string]*bolt.DB)
 }
 
+// Update
+// 		Responsible for updating the provided key and value in the connected database
 func Update(key, value, bucket *string) (updated bool, updatedKey *string) {
 	if *key == "" || *value == "" {
 		return false, key
@@ -70,6 +73,8 @@ func Update(key, value, bucket *string) (updated bool, updatedKey *string) {
 	return true, key
 }
 
+// Get
+// 		Responsible for retrieving values from the database based on specified key and bucket
 func Get(key, bucket *string) (exists bool, value *[]byte) {
 	if *key == "" {
 		return false, nil
@@ -92,6 +97,8 @@ func Get(key, bucket *string) (exists bool, value *[]byte) {
 	return true, value
 }
 
+// Delete
+// 		Will remove the specified key from the database
 func Delete(key, bucket *string) (deleted bool, err error) {
 	if *key == "" {
 		return false, errors.New("unable to delete an empty key")
