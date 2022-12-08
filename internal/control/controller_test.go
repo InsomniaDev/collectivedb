@@ -29,7 +29,7 @@ func TestStoreData(t *testing.T) {
 				bucket: &bucket,
 				data:   &testValue,
 			},
-			want: false,
+			want: true,
 			want1: &testKey,
 		},
 	}

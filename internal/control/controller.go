@@ -84,7 +84,7 @@ func SyncNodeList() {}
 //	Will store the provided data on this node
 func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
 	// Create a unique key
-	if *key != "" {
+	if *key == "" {
 		newKey := uuid.New().String()
 		key = &newKey
 	}
