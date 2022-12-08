@@ -26,6 +26,22 @@ func createUuid() string {
 //	Will allow for the ip address to be configurable as well upon service initialization
 func determineIpAddress() string {
 
+	// Check if the env variable is set for the IP address
+	envIp := os.Getenv("COLLECTIVE_HOST_URL")
+	if envIp != "" {
+		return envIp
+	}
+
+	envIp = os.Getenv("COLLECTIVE_IP")
+
+	resolverFile := "/etc/resolv.conf"
+	// Check if resolver file is provided
+	envResolverFile := os.Getenv("COLLECTIVE_RESOLVER_FILE")
+	if envResolverFile != "" {
+		resolverFile = envResolverFile
+	}
+
+	// function to return the local ip address for the network
 	discoverLocalIp := func() string {
 		conn, err := net.Dial("udp", "8.8.8.8:80")
 		if err != nil {
@@ -34,16 +50,12 @@ func determineIpAddress() string {
 		defer conn.Close()
 
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-		fmt.Println(localAddr.IP.String())
 		return localAddr.IP.String()
 	}
-	valud, _ := os.Hostname()
 
-	fmt.Println(valud)
-
+	// determine if this pod is running in k8s
 	checkIfK8s := func() (bool, string) {
-		readfile, err := os.Open("/etc/resolv.conf")
+		readfile, err := os.Open(resolverFile)
 		if err != nil {
 			return false, ""
 		}
@@ -54,29 +66,34 @@ func determineIpAddress() string {
 
 			match := searchRegexp.FindSubmatch([]byte(fileScanner.Text()))
 			if match != nil && strings.Contains(string(match[1]), "svc.cluster.local") {
-				return true, string(match[1])
+				matchedStrings := strings.Split(string(match[1]), " ")
+				return true, string(matchedStrings[0])
 			}
 		}
 		return false, ""
 	}
 
+	// This pod has a search dns route for k8s, compose the dns route for the pod
 	if isInK8s, svcValue := checkIfK8s(); isInK8s {
-		fmt.Println(svcValue)
 
-		// get the local ip address
-		localIpAddress := discoverLocalIp()
-		formattedIp := strings.Replace(localIpAddress, ".", "-", -1)
-
-		formattedDnsRoute := strings.Replace(svcValue, ".svc.", ".pod.", -1)
-		
-		// put these together
-
-		// Let's do something with the service value here
 		// Need to get the $HOSTNAME env variable here, then create the connection to it
 		// 	split by the periods to get the namespace - default.svc.cluster.local
-		// 	or just replace the `svc` with `pod`
+		// 	convert into the dns route for a pod:
 		// 		pod-ip-address.my-namespace.pod.cluster-domain.example
 		//		10-42-0-180.default.pod.cluster.local
+
+		// discover the local ip address
+		localIpAddress := envIp
+		if localIpAddress == "" {
+			localIpAddress = discoverLocalIp()
+		}
+
+		// format the ip and convert svc to pod
+		formattedIp := strings.Replace(localIpAddress, ".", "-", -1)
+		formattedDnsRoute := strings.Replace(svcValue, ".svc.", ".pod.", -1)
+
+		dnsLocalIp := fmt.Sprintf("%s.%s", formattedIp, formattedDnsRoute)
+		return dnsLocalIp
 	}
 
 	return discoverLocalIp()

@@ -1,6 +1,7 @@
 package control
 
 import (
+	"os"
 	"testing"
 )
 
@@ -28,10 +29,31 @@ func Test_determineIpAddress(t *testing.T) {
 		name string
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Url provided",
+			want: "192.168.1.1",
+		},
+		{
+			name: "Environment",
+			want: "192-168-1-1.default.pod.cluster.local",
+		},
+		{
+			name: "Kubernetes",
+			want: "192-168-1-56.default.pod.cluster.local",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Url provided" {
+				os.Setenv("COLLECTIVE_HOST_URL", "192.168.1.1")
+			} else if tt.name == "Environment" {
+				os.Setenv("COLLECTIVE_HOST_URL", "")
+				os.Setenv("COLLECTIVE_IP", "192.168.1.1")
+				os.Setenv("COLLECTIVE_RESOLVER_FILE", "test.conf")
+			} else {
+				os.Setenv("COLLECTIVE_IP", "")
+				os.Setenv("COLLECTIVE_RESOLVER_FILE", "test.conf")
+			}
 			if got := determineIpAddress(); got != tt.want {
 				t.Errorf("determineIpAddress() = %v, want %v", got, tt.want)
 			}
