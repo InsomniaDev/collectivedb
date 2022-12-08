@@ -38,6 +38,9 @@ func determineIpAddress() string {
 		fmt.Println(localAddr.IP.String())
 		return localAddr.IP.String()
 	}
+	valud, _ := os.Hostname()
+
+	fmt.Println(valud)
 
 	checkIfK8s := func() (bool, string) {
 		readfile, err := os.Open("/etc/resolv.conf")
@@ -59,8 +62,21 @@ func determineIpAddress() string {
 
 	if isInK8s, svcValue := checkIfK8s(); isInK8s {
 		fmt.Println(svcValue)
+
+		// get the local ip address
+		localIpAddress := discoverLocalIp()
+		formattedIp := strings.Replace(localIpAddress, ".", "-", -1)
+
+		formattedDnsRoute := strings.Replace(svcValue, ".svc.", ".pod.", -1)
+		
+		// put these together
+
 		// Let's do something with the service value here
 		// Need to get the $HOSTNAME env variable here, then create the connection to it
+		// 	split by the periods to get the namespace - default.svc.cluster.local
+		// 	or just replace the `svc` with `pod`
+		// 		pod-ip-address.my-namespace.pod.cluster-domain.example
+		//		10-42-0-180.default.pod.cluster.local
 	}
 
 	return discoverLocalIp()
