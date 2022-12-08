@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/google/uuid"
 	database "github.com/insomniadev/collective-db/internal/database"
 )
 
@@ -23,7 +24,10 @@ type Node struct {
 	LeaderNode bool   `json:"leader"`
 }
 
-var controller Controller
+var (
+	active     bool
+	controller Controller
+)
 
 // Pull from local database, if doesn't exist then
 //
@@ -49,12 +53,14 @@ func init() {
 	}
 }
 
-// Active
+// IsActive
 //
 //	Returns a confirmation on if this node is currently active and processing
 //
 // THOUGHTS: If this server is up then it should be running, should this be where it has been synced with other nodes?
-func Active() {}
+func IsActive() bool {
+	return active
+}
 
 // NodeInfo
 //
@@ -76,7 +82,16 @@ func SyncNodeList() {}
 // StoreData
 //
 //	Will store the provided data on this node
-func StoreData() {}
+func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
+	// Create a unique key
+	if *key != "" {
+		newKey := uuid.New().String()
+		key = &newKey
+	}
+
+	updated, key := database.Update(key, bucket, data)
+	return updated, key
+}
 
 // RetrieveData
 //
@@ -88,4 +103,9 @@ func RetrieveData() {}
 //	Will update the replicas on the data changes
 //
 // TODO: This might need to go somewhere else
-func UpdateReplicas() {}
+func UpdateReplicas() {
+	// Need a way to determine if the replicas are updated correctly
+	// 	1) With an offset?
+	// 	2) With a uuid?
+	// 	3)
+}

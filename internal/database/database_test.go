@@ -9,14 +9,14 @@ func TestUpdate(t *testing.T) {
 	bucket := "test"
 
 	validKey := "testKey"
-	validValue := "testValue"
+	validValue := []byte("testValue")
 
 	invalidKey := ""
-	invalidValue := ""
+	invalidValue := []byte("")
 
 	type args struct {
 		key    *string
-		value  *string
+		value  *[]byte
 		bucket *string
 	}
 	tests := []struct {
@@ -48,7 +48,7 @@ func TestUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotInserted, gotInsertedKey := Update(tt.args.key, tt.args.value, tt.args.bucket)
+			gotInserted, gotInsertedKey := Update(tt.args.key, tt.args.bucket, tt.args.value)
 			if gotInserted != tt.wantUpdated {
 				t.Errorf("Insert() gotInserted = %v, want %v", gotInserted, tt.wantUpdated)
 			}

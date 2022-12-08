@@ -47,8 +47,8 @@ func CloseConnections() {
 
 // Update
 // 		Responsible for updating the provided key and value in the connected database
-func Update(key, value, bucket *string) (updated bool, updatedKey *string) {
-	if *key == "" || *value == "" {
+func Update(key, bucket *string, value *[]byte) (updated bool, updatedKey *string) {
+	if *key == "" || string(*value) == "" {
 		return false, key
 	}
 
@@ -59,7 +59,7 @@ func Update(key, value, bucket *string) (updated bool, updatedKey *string) {
 			return err
 		}
 
-		err = bucket.Put([]byte(*key), []byte(*value))
+		err = bucket.Put([]byte(*key), *value)
 		if err != nil {
 			log.Fatal(err)
 			return err
