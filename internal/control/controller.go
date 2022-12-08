@@ -40,6 +40,11 @@ func init() {
 		}
 	} else {
 		controller.NodeId = createUuid()
+
+		// Utilizes Environment variables:
+		//	COLLECTIVE_HOST_URL - will set this as it's IP address with no additional logic
+		// 	COLLECTIVE_IP - will use this IP but still configure for K8S
+		// 	COLLECTIVE_RESOLVER_FILE - will override default /etc/resolv.conf file
 		controller.IpAddress = determineIpAddress()
 	}
 }
@@ -57,6 +62,11 @@ func Active() {}
 func NodeInfo() *Controller {
 	return &controller
 }
+
+// SyncReplicas
+//
+//	Will determine replicas that need to be synced
+func SyncReplicas() {}
 
 // SyncNodeList
 //
