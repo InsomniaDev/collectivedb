@@ -11,17 +11,18 @@ import (
 
 // Main Controller struct
 type Controller struct {
-	NodeId          string `json:"nodeId"`          // UUID of this node within the NodeList
-	IpAddress       string `json:"ipAddress"`       // IpAddress of this node
-	ReplicaNodes    []Node `json:"replicaNodes"`    // Replica nodes of this node
-	CollectiveNodes []Node `json:"collectiveNodes"` // List of node IPs that are connected to the collective
+	NodeId          string `json:"nodeId"`             // UUID of this node within the NodeList
+	IpAddress       string `json:"ipAddress"`          // IpAddress of this node
+	KubeDeployed    bool   `json:"kubernetesDeployed"` // This app is deployed in kubernetes
+	ReplicaNodes    []Node `json:"replicaNodes"`       // Replica nodes of this node
+	CollectiveNodes []Node `json:"collectiveNodes"`    // List of node IPs that are connected to the collective
 }
 
 // Node struct
 type Node struct {
 	IpAddress  string `json:"ipAddress"`
 	NodeId     string `json:"nodeId"`
-	LeaderNode bool   `json:"leader"`
+	LeaderNode bool   `json:"leader"` // Do I need to have a leader here?
 }
 
 var (
@@ -53,6 +54,22 @@ func init() {
 	}
 }
 
+// startNode
+//
+//	Is responsible for starting the node up, syncing data
+func startNode() {
+
+	// Check if there are nodes to sync with
+	if controller.CollectiveNodes == nil {
+		// Get the node id to sync with and populate
+		controller = findNodeLeader()
+	}
+
+	// Determine which replica group to fit into
+	// Pull data from replica group
+	// Update current database if needed
+}
+
 // IsActive
 //
 //	Returns a confirmation on if this node is currently active and processing
@@ -60,6 +77,13 @@ func init() {
 // THOUGHTS: If this server is up then it should be running, should this be where it has been synced with other nodes?
 func IsActive() bool {
 	return active
+}
+
+// Deactivate
+//
+//	Will deactivate the node, redistribute leaders, and send data if needed
+func Deactivate() bool {
+	return false
 }
 
 // NodeInfo
@@ -96,7 +120,22 @@ func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
 // RetrieveData
 //
 //	Will return the requested data to the calling application or node
-func RetrieveData() {}
+func RetrieveData(key, bucket *string) (bool, *[]byte) {
+	if exists, value := database.Get(key, bucket); exists {
+		return exists, value
+	}
+	return false, nil
+}
+
+// DeleteData
+//
+//	Delete data will remove the data from the database
+func DeleteData(key, bucket *string) (bool, error) {
+	if deleted, err :=  database.Delete(key, bucket); !deleted {
+		return false, err
+	}
+	return true, nil
+}
 
 // UpdateReplicas
 //

@@ -76,6 +76,9 @@ func determineIpAddress() string {
 	// This pod has a search dns route for k8s, compose the dns route for the pod
 	if isInK8s, svcValue := checkIfK8s(); isInK8s {
 
+		// set as kubernetes being active
+		controller.KubeDeployed = true
+
 		// Need to get the $HOSTNAME env variable here, then create the connection to it
 		// 	split by the periods to get the namespace - default.svc.cluster.local
 		// 	convert into the dns route for a pod:
@@ -97,4 +100,25 @@ func determineIpAddress() string {
 	}
 
 	return discoverLocalIp()
+}
+
+// findNodeLeader
+//
+//	Will determine the leader
+func findNodeLeader() Controller {
+	// Determine if the env variable is set for the node connection
+	nodeUrl := os.Getenv("COLLECTIVE_LEADER_NODE")
+	if nodeUrl != "" {
+		// Grab data from the node leader
+		// api.grabdata
+		// return data
+	}
+
+	// Determine if we can see the leader through the k8s service, if part of k8s
+	if controller.KubeDeployed {
+		// Check against all pods within kubernetes service if they are part of the collective
+		// This check should send the current connection string for those pods to connect to us
+	}
+
+	return Controller{}
 }

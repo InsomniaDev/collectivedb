@@ -2,6 +2,7 @@ package control
 
 import (
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -56,6 +57,32 @@ func Test_determineIpAddress(t *testing.T) {
 			}
 			if got := determineIpAddress(); got != tt.want {
 				t.Errorf("determineIpAddress() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_findNodeLeader(t *testing.T) {
+	tests := []struct {
+		name string
+		want Controller
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Success",
+			want: Controller{
+				NodeId: "test-it",
+			},
+		},
+		{
+			name:"Failure",
+			want: Controller{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := findNodeLeader(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("findNodeLeader() = %v, want %v", got, tt.want)
 			}
 		})
 	}
