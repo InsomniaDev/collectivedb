@@ -91,9 +91,14 @@ func Get(key, bucket *string) (exists bool, value *[]byte) {
 	})
 
 	if err != nil {
-		log.Error("get bucket err:", bucket, err)
+		log.Debug("get bucket err:", bucket, err)
 		return false, nil
 	}
+
+	if len(*value) == 0 {
+		return false, value
+	}
+
 	return true, value
 }
 
@@ -108,7 +113,7 @@ func Delete(key, bucket *string) (deleted bool, err error) {
 		bucket := tx.Bucket([]byte(*bucket))
 		if bucket == nil {
 			log.Error("get bucket err:", bucket, err)
-			return err
+			return errors.New("bucket doesn't exist")
 		}
 
 		err = bucket.Delete([]byte(*key))
