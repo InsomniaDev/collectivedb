@@ -18,34 +18,33 @@ type Controller struct {
 	KubeDeployed    bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
 	ReplicaNodes    []Node         `json:"replicaNodes"`       // Replica nodes of this node
 	CollectiveNodes []ReplicaGroup `json:"collectiveNodes"`    // List of node IPs that are connected to the collective
+	Data            DataDictionary `json:"data"`               // Location of all the keys to nodes
 }
 
 // ReplicaGroup
 type ReplicaGroup struct {
 	ReplicaNum   int    `json:"replicaNumber"`
 	ReplicaNodes []Node `json:"nodes"`
-	Max          bool   `json:"max"`
+	FullGroup    bool   `json:"fullGroup"`
 }
 
 // Node struct
 type Node struct {
-	Hash       string `json:"hash"`
-	IpAddress  string `json:"ipAddress"`
-	NodeId     string `json:"nodeId"`
-	LeaderNode bool   `json:"leader"` // Do I need to have a leader here?
+	NodeId    string `json:"nodeId"`
+	IpAddress string `json:"ipAddress"`
 }
 
 // DataDictionary struct
 type DataDictionary struct {
-	DataLocations Data `json:"data"`
+	DataLocations []Data `json:"data"`
 }
 
 // Data struct
 type Data struct {
-	ReplicaNodeGroup int      `json:"replicaNodeGroup"`
-	DataKey          string   `json:"dataKey"`
-	Database         string   `json:"database"`
-	ReplicatedNodes  []string `json:"replicatedNodes"`
+	ReplicaNodeGroup  int      `json:"replicaNodeGroup"`
+	DataKey           string   `json:"dataKey"`
+	Database          string   `json:"database"`
+	ReplicatedNodeIds []string `json:"replicatedNodes"`
 }
 
 var (
@@ -66,20 +65,26 @@ func init() {
 		if err := json.Unmarshal(*value, &controller); err != nil {
 			log.Fatal("Failed to parse the configuration data")
 		}
-	} else {
-		controller.NodeId = createUuid()
 
-		// Utilizes Environment variables:
-		//	COLLECTIVE_HOST_URL - will set this as it's IP address with no additional logic
-		// 	COLLECTIVE_IP - will use this IP but still configure for K8S
-		// 	COLLECTIVE_RESOLVER_FILE - will override default /etc/resolv.conf file
-		controller.IpAddress = determineIpAddress()
+		// TODO: update and refresh data
 
-		// Will assign replicas to this node
-		determineReplicas()
+		// return if this is the correct group, if the group no longer exists, then start this as a new collective
 
-		// TODO:
 	}
+
+	controller.NodeId = createUuid()
+
+	// Utilizes Environment variables:
+	//	COLLECTIVE_HOST_URL - will set this as it's IP address with no additional logic
+	// 	COLLECTIVE_IP - will use this IP but still configure for K8S
+	// 	COLLECTIVE_RESOLVER_FILE - will override default /etc/resolv.conf file
+	controller.IpAddress = determineIpAddress()
+
+	// Will assign replicas to this node
+	determineReplicas()
+
+	// TODO:
+
 }
 
 // startNode
@@ -130,24 +135,31 @@ func UpdateCollective() {
 
 // NodeUpdate
 //
-// 	Will update this node with the incoming information from the other nodes
+//	Will update this node with the incoming information from the other nodes
 func NodeUpdate() {
 	// Update this node with the incoming information
 	// Send the data to the first url in the next replica group
 	// Send the new data to all replicas in this replica group
 }
 
+// ReplicateRequest
+//
+//	Node requesting to join this replica group
+func ReplicateRequest() {
+	// Respond with success or failure
+}
+
 // ReplicaUpdate
 //
-// 	Will update this node with the data coming from another replica related to collective data
-// 	This update call will not attempt to continue distributing the update
+//	Will update this node with the data coming from another replica related to collective data
+//	This update call will not attempt to continue distributing the update
 func ReplicaUpdate() {
 
 }
 
 // ReplicaStoreData
 //
-// 	Will store the data provided from another replica and not update DataDictionary or attempt to replicate
+//	Will store the data provided from another replica and not update DataDictionary or attempt to replicate
 func ReplicaStoreData() {
 
 }

@@ -91,7 +91,7 @@ func Test_findNodeLeader(t *testing.T) {
 func Test_determineReplicas(t *testing.T) {
 
 	controller.CollectiveNodes = []ReplicaGroup{
-		ReplicaGroup{
+		{
 			ReplicaNum: 1,
 			ReplicaNodes: []Node{
 				{
@@ -104,7 +104,7 @@ func Test_determineReplicas(t *testing.T) {
 					IpAddress: "3",
 				},
 			},
-			Max: true,
+			FullGroup: true,
 		},
 	}
 
@@ -145,6 +145,156 @@ func Test_determineReplicas(t *testing.T) {
 
 			if err := determineReplicas(); (err != nil) != tt.wantErr {
 				t.Errorf("determineReplicas() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_removeNode(t *testing.T) {
+	controller.ReplicaNodes = []Node{
+		{
+			NodeId:    "1",
+			IpAddress: "1",
+		},
+		{
+			NodeId:    "2",
+			IpAddress: "2",
+		},
+		{
+			NodeId:    "3",
+			IpAddress: "3",
+		},
+	}
+
+	controller.CollectiveNodes = []ReplicaGroup{
+		{
+			ReplicaNum: 1,
+			ReplicaNodes: []Node{
+				{
+					NodeId:    "1",
+					IpAddress: "1",
+				},
+				{
+					NodeId:    "2",
+					IpAddress: "2",
+				},
+				{
+					NodeId:    "3",
+					IpAddress: "3",
+				},
+			},
+			FullGroup: true,
+		},
+		{
+			ReplicaNum: 2,
+			ReplicaNodes: []Node{
+				{
+					NodeId:    "4",
+					IpAddress: "4",
+				},
+				{
+					NodeId:    "5",
+					IpAddress: "5",
+				},
+				{
+					NodeId:    "6",
+					IpAddress: "6",
+				},
+			},
+			FullGroup: true,
+		},
+	}
+
+	controller.Data.DataLocations = []Data{
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          "1",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"1", "2", "3", "5",
+			},
+		},
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          "1",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"1", "2", "3",
+			},
+		},
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          "1",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"1", "2", "3",
+			},
+		},
+		{
+			ReplicaNodeGroup: 2,
+			DataKey:          "1",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"4", "5", "6",
+			},
+		},
+		{
+			ReplicaNodeGroup: 2,
+			DataKey:          "1",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"4", "5", "6",
+			},
+		},
+		{
+			ReplicaNodeGroup: 2,
+			DataKey:          "1",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"4", "5", "6",
+			},
+		},
+	}
+
+	type args struct {
+		replicationGroup int
+	}
+	tests := []struct {
+		name            string
+		args            args
+		wantNodeRemoved Node
+		wantErr         bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Success",
+			args: args{
+				replicationGroup: 1,
+			},
+			wantNodeRemoved: Node{
+				NodeId:    "5",
+				IpAddress: "5",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Failure",
+			args: args{
+				replicationGroup: 2,
+			},
+			wantNodeRemoved: Node{},
+			wantErr:         true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotNodeToRemove, err := removeNode(tt.args.replicationGroup)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("removeNode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotNodeToRemove, tt.wantNodeRemoved) {
+				t.Errorf("removeNode() = %v, want %v", gotNodeToRemove, tt.wantNodeRemoved)
 			}
 		})
 	}

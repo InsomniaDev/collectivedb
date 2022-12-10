@@ -2,11 +2,13 @@ package control
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -110,7 +112,7 @@ func findNodeLeader() Controller {
 	nodeUrl := os.Getenv("COLLECTIVE_LEADER_NODE")
 	if nodeUrl != "" {
 		// Grab data from the node leader
-		// Determine if node leader is the first IP 
+		// Determine if node leader is the first IP
 		// Grab data from the first IP
 		// return data
 	}
@@ -124,13 +126,109 @@ func findNodeLeader() Controller {
 	return Controller{}
 }
 
+// syncData
+//
+//	is responsible for syncing data between nodes once an application starts up
+func syncData() (err error) {
+	return nil
+}
+
+// removeNode
+//
+//	when adding a node to an existing replica group, remove a node that holds the data but is not part of the replication group
+func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
+	found := false
+	// Determine node to remove data from
+	for i := range controller.Data.DataLocations {
+		// Check to see if the replica group number matches the one we are looking for
+		if controller.Data.DataLocations[i].ReplicaNodeGroup == replicationGroup {
+			// Cycle through and see if the data has a node id that doesn't match with the replica nodes
+			for j := range controller.Data.DataLocations[i].ReplicatedNodeIds {
+				// Set boolean if it matches the current group
+				matchesCurrentGroup := false
+
+				// Go through nodes for the replica group and compare
+				for rg := range controller.ReplicaNodes {
+					if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == controller.ReplicaNodes[rg].NodeId {
+						matchesCurrentGroup = true
+					}
+				}
+
+				// If the node wasn't discovered, then set it as the discovered node
+				if !matchesCurrentGroup {
+					nodeRemoved.NodeId = controller.Data.DataLocations[i].ReplicatedNodeIds[j]
+				}
+			}
+		}
+		if found {
+			break
+		}
+	}
+
+	if nodeRemoved.NodeId == "" {
+		return Node{}, errors.New("there is no node to be removed")
+	}
+
+	// Cycle through the collective group to determine which node we are removing
+	found = false
+	for i := range controller.CollectiveNodes {
+		for rg := range controller.CollectiveNodes[i].ReplicaNodes {
+			// Does the collective node replica group node match the node id we are attempting to remove
+			if controller.CollectiveNodes[i].ReplicaNodes[rg].NodeId == nodeRemoved.NodeId {
+				// Update so that we have the IP to send removal of data requests to
+				nodeRemoved = controller.CollectiveNodes[i].ReplicaNodes[rg]
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+
+	if nodeRemoved.IpAddress == "" {
+		// FIXME: In the future, if the node no longer exists then we should do some cleanup in the data dictionary
+		return Node{}, errors.New("this node no longer exists")
+	}
+
+	var callToRemove = func(data []Data) {
+		// TODO: API Call to remove all of these data entries to the IP of the remove node
+	}
+
+	// Go through and remove all of the data that this node has for this replica group
+	dataToRemove := []Data{}
+	for i := range controller.Data.DataLocations {
+		// Check if the data is in this replication group and should be removed
+		if replicationGroup == controller.Data.DataLocations[i].ReplicaNodeGroup {
+			for j := range controller.Data.DataLocations[i].ReplicatedNodeIds {
+				if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == nodeRemoved.NodeId {
+					dataToRemove = append(dataToRemove, controller.Data.DataLocations[i])
+				}
+			}
+		}
+		if len(dataToRemove) > 50 {
+			go callToRemove(dataToRemove)
+			dataToRemove = []Data{}
+		}
+	}
+	go callToRemove(dataToRemove)
+
+	return nodeRemoved, nil
+}
+
 // DetermineReplicas
 //
 //	Will determine the replicas for this new node
 func determineReplicas() (err error) {
 
-	// TODO: All of this logic needs to be re-done, needs to be done with new scaling algorithm
-
+	replicaCount := 1
+	// Get the environment variable on the wanted replica count
+	if rc := os.Getenv("COLLECTIVE_REPLICA_COUNT"); rc != "" {
+		// Convert env variable to number
+		if replicaCount, err = strconv.Atoi(rc); err != nil {
+			return err
+		}
+	}
 	// Scale OUT Algorithm
 	//
 	// 	OPEN replica group?
@@ -141,6 +239,42 @@ func determineReplicas() (err error) {
 	// 			 Update for data location
 	// 			 For each new replica added, remove data from 1 node per replica added
 	// 				eg., search through the data dictionary for replica group and remove the replica nodes
+
+	// Cycle through the collective replica groups and determine if there is a new group
+	for _, rg := range controller.CollectiveNodes {
+		// if it is not a full replica group
+		if !rg.FullGroup {
+			// Determine if there are more nodes in the group than the replica count
+			if len(rg.ReplicaNodes) > replicaCount {
+				// We don't want to add to a replica group that is already oversized
+				break
+			}
+
+			// Update the node that we are part of the group now
+			// apiCall that will go through `ReplicateRequest` on another node
+
+			// Update this controller data with the replication group
+			controller.ReplicaNodes = rg.ReplicaNodes
+			controller.ReplicaNodes = append(controller.ReplicaNodes)
+
+			// remove node not in replication group
+			go removeNode(rg.ReplicaNum)
+
+			// start pulling in the data required
+			go syncData()
+
+			// do not go through process of pulling in new data
+			return
+		}
+	}
+
+	return nil
+}
+
+// terminateReplicas
+//
+//	Is responsible for alerting when termination is starting, and sending data to another replica group
+func terminateReplicas() (err error) {
 
 	// Scale IN Algorithm
 	//
