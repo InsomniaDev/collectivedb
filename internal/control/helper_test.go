@@ -75,7 +75,7 @@ func Test_findNodeLeader(t *testing.T) {
 			},
 		},
 		{
-			name:"Failure",
+			name: "Failure",
 			want: Controller{},
 		},
 	}
@@ -83,6 +83,62 @@ func Test_findNodeLeader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := findNodeLeader(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("findNodeLeader() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_determineReplicas(t *testing.T) {
+
+	controller.CollectiveNodes = []Node{
+		{
+			IpAddress: "1",
+		},
+		{
+			IpAddress: "2",
+		},
+		{
+			IpAddress: "3",
+		},
+	}
+
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "Success1",
+			wantErr: false,
+		},
+		{
+			// Specified replica count is lower than controller amount
+			name:    "Success2",
+			wantErr: false,
+		},
+		{
+			// Too high of a replica count to number of collective nodes
+			name:    "Replicas",
+			wantErr: true,
+		},
+		{
+			// Failed to parse the number of replicas
+			name:    "Failed",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			switch tt.name {
+			case "Success2":
+				os.Setenv("COLLECTIVE_REPLICA_COUNT", "2")
+			case "Replicas":
+				os.Setenv("COLLECTIVE_REPLICA_COUNT", "10")
+			case "Failed":
+				os.Setenv("COLLECTIVE_REPLICA_COUNT", "NAN")
+			}
+
+			if err := determineReplicas(); (err != nil) != tt.wantErr {
+				t.Errorf("determineReplicas() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -8,6 +8,7 @@ import (
 func TestStoreData(t *testing.T) {
 	bucket := "test"
 
+	newData := ""
 	testKey := "key"
 	testValue := []byte("value")
 
@@ -24,7 +25,17 @@ func TestStoreData(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Stored",
+			name: "New",
+			args: args{
+				key:    &newData,
+				bucket: &bucket,
+				data:   &testValue,
+			},
+			want:  true,
+			want1: &newData,
+		},
+		{
+			name: "UpdatedOtherNode",
 			args: args{
 				key:    &testKey,
 				bucket: &bucket,
@@ -40,8 +51,12 @@ func TestStoreData(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("StoreData() got = %v, want %v", got, tt.want)
 			}
-			if got1 != tt.want1 {
+			if got1 != tt.want1 && tt.name != "New" {
 				t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
+			} else {
+				if len(*tt.want1) != len("6e79bdbb-1c82-49de-a0ad-abafde999ebc") {
+					t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
+				}
 			}
 		})
 	}
@@ -119,7 +134,7 @@ func TestDeleteData(t *testing.T) {
 				key:    &testKey,
 				bucket: &bucket,
 			},
-			want: true,
+			want:    true,
 			wantErr: false,
 		},
 		{
@@ -128,7 +143,7 @@ func TestDeleteData(t *testing.T) {
 				key:    &testKey,
 				bucket: &testFailBucket,
 			},
-			want: false,
+			want:    false,
 			wantErr: true,
 		},
 	}

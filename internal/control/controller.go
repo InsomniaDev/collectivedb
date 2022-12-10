@@ -4,6 +4,8 @@ package control
 import (
 	"encoding/json"
 	"log"
+	"os"
+	"sync"
 
 	"github.com/google/uuid"
 	database "github.com/insomniadev/collective-db/internal/database"
@@ -20,6 +22,7 @@ type Controller struct {
 
 // Node struct
 type Node struct {
+	Hash       string `json:"hash"`
 	IpAddress  string `json:"ipAddress"`
 	NodeId     string `json:"nodeId"`
 	LeaderNode bool   `json:"leader"` // Do I need to have a leader here?
@@ -107,14 +110,37 @@ func SyncNodeList() {}
 //
 //	Will store the provided data on this node
 func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
-	// Create a unique key
+	ackLevel := os.Getenv("COLLECTIVE_ACK_LEVEL")
+	if ackLevel == "" {
+		ackLevel = "NONE"
+	}
+
+	distributeData := func(key, bucket *string, data *[]byte) {
+
+	}
+
+	// Create a unique key and update since this is new data
 	if *key == "" {
 		newKey := uuid.New().String()
 		key = &newKey
+
+		updated, key := database.Update(key, bucket, data)
+
+		switch ackLevel {
+		case "ALL":
+			distributeData(key, bucket, data)
+		case "NONE":
+			go distributeData(key, bucket, data)
+		}
+		return updated, key
 	}
 
-	updated, key := database.Update(key, bucket, data)
-	return updated, key
+	// This data exists already
+	// TODO: Determine what node the data is on
+	// TODO: Send update command to all nodes to store the data
+	// TODO: Wait for response of confirmation if that env variable is set
+
+	return false, nil
 }
 
 // RetrieveData
@@ -124,6 +150,11 @@ func RetrieveData(key, bucket *string) (bool, *[]byte) {
 	if exists, value := database.Get(key, bucket); exists {
 		return exists, value
 	}
+
+	// The data does not exist on this node
+	// TODO: Determine what node the data exists on
+	// TODO: Go retrieve the data and then return it here
+
 	return false, nil
 }
 
@@ -131,9 +162,15 @@ func RetrieveData(key, bucket *string) (bool, *[]byte) {
 //
 //	Delete data will remove the data from the database
 func DeleteData(key, bucket *string) (bool, error) {
-	if deleted, err :=  database.Delete(key, bucket); !deleted {
-		return false, err
+	if deleted, err := database.Delete(key, bucket); deleted {
+		return true, err
 	}
+
+	// The data does not exist on this node
+	// TODO: Determine what node the data exists on
+	// TODO: Send a delete command to all replicas to delete the data
+	// TODO: Wait for response of confirmation if that env variable is set
+
 	return true, nil
 }
 
@@ -142,9 +179,16 @@ func DeleteData(key, bucket *string) (bool, error) {
 //	Will update the replicas on the data changes
 //
 // TODO: This might need to go somewhere else
-func UpdateReplicas() {
-	// Need a way to determine if the replicas are updated correctly
-	// 	1) With an offset?
-	// 	2) With a uuid?
-	// 	3)
+func UpdateReplicas(urls []string, hashedKey int) {
+
+	// Use a mutex to synchronize access to the list of URLs.
+	var mu sync.Mutex
+	mu.Lock()
+	defer mu.Unlock()
+
+	// for replicaNode := range
+
+	// Send the data to the URL with the next highest hash.
+	// url := urlMap[nextHash]
+	// sendData(url, data)
 }

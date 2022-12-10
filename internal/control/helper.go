@@ -2,12 +2,16 @@ package control
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -121,4 +125,37 @@ func findNodeLeader() Controller {
 	}
 
 	return Controller{}
+}
+
+// DetermineReplicas
+//
+//	Will determine the replicas for this new node
+func determineReplicas() (err error) {
+
+	replicaCount := 1
+
+	// Get the environment variable on the wanted replica count
+	if rc := os.Getenv("COLLECTIVE_REPLICA_COUNT"); rc != "" {
+		// Convert env variable to number
+		if replicaCount, err = strconv.Atoi(rc); err != nil {
+			return err
+		}
+	}
+
+	// Set the seed for the random number generator
+	rand.Seed(time.Now().UnixNano())
+
+	if len(controller.CollectiveNodes) < replicaCount {
+		return errors.New("replica count exceeds node count")
+	}
+
+	// Randomly assign strings from the slice
+	for i := 0; i < replicaCount; i++ {
+		// Generate a random index
+		randIndex := rand.Intn(len(controller.CollectiveNodes))
+
+		// Print the string at the random index
+		controller.ReplicaNodes = append(controller.ReplicaNodes, controller.CollectiveNodes[randIndex])
+	}
+	return nil
 }
