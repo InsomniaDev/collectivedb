@@ -132,6 +132,8 @@ func findNodeLeader() Controller {
 //	Will determine the replicas for this new node
 func determineReplicas() (err error) {
 
+	// TODO: All of this logic needs to be re-done, needs to be done with new scaling algorithm
+
 	replicaCount := 1
 
 	// Get the environment variable on the wanted replica count

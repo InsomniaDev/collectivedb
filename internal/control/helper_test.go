@@ -40,7 +40,7 @@ func Test_determineIpAddress(t *testing.T) {
 		},
 		{
 			name: "Kubernetes",
-			want: "192-168-1-56.default.pod.cluster.local",
+			want: "192-168-1-1.default.pod.cluster.local",
 		},
 	}
 	for _, tt := range tests {
@@ -52,7 +52,7 @@ func Test_determineIpAddress(t *testing.T) {
 				os.Setenv("COLLECTIVE_IP", "192.168.1.1")
 				os.Setenv("COLLECTIVE_RESOLVER_FILE", "test.conf")
 			} else {
-				os.Setenv("COLLECTIVE_IP", "")
+				os.Setenv("COLLECTIVE_IP", "192.168.1.1")
 				os.Setenv("COLLECTIVE_RESOLVER_FILE", "test.conf")
 			}
 			if got := determineIpAddress(); got != tt.want {
@@ -90,15 +90,21 @@ func Test_findNodeLeader(t *testing.T) {
 
 func Test_determineReplicas(t *testing.T) {
 
-	controller.CollectiveNodes = []Node{
-		{
-			IpAddress: "1",
-		},
-		{
-			IpAddress: "2",
-		},
-		{
-			IpAddress: "3",
+	controller.CollectiveNodes = []ReplicaGroup{
+		ReplicaGroup{
+			ReplicaNum: 1,
+			ReplicaNodes: []Node{
+				{
+					IpAddress: "1",
+				},
+				{
+					IpAddress: "2",
+				},
+				{
+					IpAddress: "3",
+				},
+			},
+			Max: true,
 		},
 	}
 

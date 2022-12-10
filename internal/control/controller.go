@@ -13,11 +13,18 @@ import (
 
 // Main Controller struct
 type Controller struct {
-	NodeId          string `json:"nodeId"`             // UUID of this node within the NodeList
-	IpAddress       string `json:"ipAddress"`          // IpAddress of this node
-	KubeDeployed    bool   `json:"kubernetesDeployed"` // This app is deployed in kubernetes
-	ReplicaNodes    []Node `json:"replicaNodes"`       // Replica nodes of this node
-	CollectiveNodes []Node `json:"collectiveNodes"`    // List of node IPs that are connected to the collective
+	NodeId          string         `json:"nodeId"`             // UUID of this node within the NodeList
+	IpAddress       string         `json:"ipAddress"`          // IpAddress of this node
+	KubeDeployed    bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
+	ReplicaNodes    []Node         `json:"replicaNodes"`       // Replica nodes of this node
+	CollectiveNodes []ReplicaGroup `json:"collectiveNodes"`    // List of node IPs that are connected to the collective
+}
+
+// ReplicaGroup
+type ReplicaGroup struct {
+	ReplicaNum   int    `json:"replicaNumber"`
+	ReplicaNodes []Node `json:"nodes"`
+	Max          bool   `json:"max"`
 }
 
 // Node struct
@@ -26,6 +33,18 @@ type Node struct {
 	IpAddress  string `json:"ipAddress"`
 	NodeId     string `json:"nodeId"`
 	LeaderNode bool   `json:"leader"` // Do I need to have a leader here?
+}
+
+// DataDictionary struct
+type DataDictionary struct {
+	DataLocations Data `json:"data"`
+}
+
+// Data struct
+type Data struct {
+	ReplicaNodeGroup int    `json:"replicaNodeGroup"`
+	DataKey          string `json:"dataKey"`
+	Database         string `json:"database"`
 }
 
 var (
@@ -54,6 +73,11 @@ func init() {
 		// 	COLLECTIVE_IP - will use this IP but still configure for K8S
 		// 	COLLECTIVE_RESOLVER_FILE - will override default /etc/resolv.conf file
 		controller.IpAddress = determineIpAddress()
+
+		// Will assign replicas to this node
+		determineReplicas()
+
+		// TODO:
 	}
 }
 
