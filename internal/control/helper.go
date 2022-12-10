@@ -2,16 +2,12 @@ package control
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -114,7 +110,8 @@ func findNodeLeader() Controller {
 	nodeUrl := os.Getenv("COLLECTIVE_LEADER_NODE")
 	if nodeUrl != "" {
 		// Grab data from the node leader
-		// api.grabdata
+		// Determine if node leader is the first IP 
+		// Grab data from the first IP
 		// return data
 	}
 
@@ -134,30 +131,52 @@ func determineReplicas() (err error) {
 
 	// TODO: All of this logic needs to be re-done, needs to be done with new scaling algorithm
 
-	replicaCount := 1
+	// Scale OUT Algorithm
+	//
+	// 	OPEN replica group?
+	// 		YES - Add to group, pull data, remove data from expired replica node (check data and update data dictionary)
+	// 		NO - Create new group
+	// 			 Pull replica % from random nodes up to total replica count (rc)
+	// 			 	eg., 33% from 3 nodes for replica count of 3
+	// 			 Update for data location
+	// 			 For each new replica added, remove data from 1 node per replica added
+	// 				eg., search through the data dictionary for replica group and remove the replica nodes
 
-	// Get the environment variable on the wanted replica count
-	if rc := os.Getenv("COLLECTIVE_REPLICA_COUNT"); rc != "" {
-		// Convert env variable to number
-		if replicaCount, err = strconv.Atoi(rc); err != nil {
-			return err
-		}
-	}
+	// Scale IN Algorithm
+	//
+	// 	FULL Group?
+	// 		YES - Send data to randomized replica group
+	// 			  Add nodes in replica group to replica node list in data dictionary for that entry
+	// 			  Update Data Dictionary and CollectiveNodes
+	// 		NO - Determine the replica group data is being sent to already
+	// 			 Send more data to that group
+	// 			 Update Data Dictionary and CollectiveNodes
 
-	// Set the seed for the random number generator
-	rand.Seed(time.Now().UnixNano())
+	// replicaCount := 1
+	// // Get the environment variable on the wanted replica count
+	// if rc := os.Getenv("COLLECTIVE_REPLICA_COUNT"); rc != "" {
+	// 	// Convert env variable to number
+	// 	if replicaCount, err = strconv.Atoi(rc); err != nil {
+	// 		return err
+	// 	}
+	// }
 
-	if len(controller.CollectiveNodes) < replicaCount {
-		return errors.New("replica count exceeds node count")
-	}
+	// // Set the seed for the random number generator
+	// rand.Seed(time.Now().UnixNano())
 
-	// Randomly assign strings from the slice
-	for i := 0; i < replicaCount; i++ {
-		// Generate a random index
-		randIndex := rand.Intn(len(controller.CollectiveNodes))
+	// if len(controller.CollectiveNodes) < replicaCount {
+	// 	return errors.New("replica count exceeds node count")
+	// }
 
-		// Print the string at the random index
-		controller.ReplicaNodes = append(controller.ReplicaNodes, controller.CollectiveNodes[randIndex])
-	}
+	// // Randomly assign strings from the slice
+	// for i := 0; i < replicaCount; i++ {
+	// 	// Generate a random index
+	// 	randIndex := rand.Intn(len(controller.CollectiveNodes))
+
+	// 	// Print the string at the random index
+	// 	controller.ReplicaNodes = append(controller.ReplicaNodes, controller.CollectiveNodes[randIndex])
+	// }
+	// return nil
+
 	return nil
 }

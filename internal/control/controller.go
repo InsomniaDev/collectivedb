@@ -42,9 +42,10 @@ type DataDictionary struct {
 
 // Data struct
 type Data struct {
-	ReplicaNodeGroup int    `json:"replicaNodeGroup"`
-	DataKey          string `json:"dataKey"`
-	Database         string `json:"database"`
+	ReplicaNodeGroup int      `json:"replicaNodeGroup"`
+	DataKey          string   `json:"dataKey"`
+	Database         string   `json:"database"`
+	ReplicatedNodes  []string `json:"replicatedNodes"`
 }
 
 var (
@@ -120,29 +121,55 @@ func NodeInfo() *Controller {
 	return &controller
 }
 
-// SyncReplicas
-//
-//	Will determine replicas that need to be synced
-func SyncReplicas() {}
-
-// SyncNodeList
+// UpdateCollective
 //
 //	Update node list with the provided data
-func SyncNodeList() {}
+func UpdateCollective() {
+	// Get the first IP in the first replication group in the collective list and send the updated information to that one
+}
+
+// NodeUpdate
+//
+// 	Will update this node with the incoming information from the other nodes
+func NodeUpdate() {
+	// Update this node with the incoming information
+	// Send the data to the first url in the next replica group
+	// Send the new data to all replicas in this replica group
+}
+
+// ReplicaUpdate
+//
+// 	Will update this node with the data coming from another replica related to collective data
+// 	This update call will not attempt to continue distributing the update
+func ReplicaUpdate() {
+
+}
+
+// ReplicaStoreData
+//
+// 	Will store the data provided from another replica and not update DataDictionary or attempt to replicate
+func ReplicaStoreData() {
+
+}
 
 // StoreData
 //
 //	Will store the provided data on this node
 func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
+	// TODO: Add a boolean if this is from the consumer or from a replica update
+
 	ackLevel := os.Getenv("COLLECTIVE_ACK_LEVEL")
 	if ackLevel == "" {
 		ackLevel = "NONE"
 	}
 
 	distributeData := func(key, bucket *string, data *[]byte) {
+		// Add the nodes updated to the DataDictionary
 
+		// Fire off DataDictionary update process through the collective
 	}
 
+	// Data is new and doesn't exist
 	// Create a unique key and update since this is new data
 	if *key == "" {
 		newKey := uuid.New().String()
@@ -150,18 +177,21 @@ func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
 
 		updated, key := database.Update(key, bucket, data)
 
+		// TODO: Add this node to the DataDictionary
+
 		switch ackLevel {
 		case "ALL":
 			distributeData(key, bucket, data)
 		case "NONE":
 			go distributeData(key, bucket, data)
 		}
+
 		return updated, key
 	}
 
 	// This data exists already
 	// TODO: Determine what node the data is on
-	// TODO: Send update command to all nodes to store the data
+	// TODO: Send update command to all nodes in replica group to store the data
 	// TODO: Wait for response of confirmation if that env variable is set
 
 	return false, nil
@@ -178,6 +208,9 @@ func RetrieveData(key, bucket *string) (bool, *[]byte) {
 	// The data does not exist on this node
 	// TODO: Determine what node the data exists on
 	// TODO: Go retrieve the data and then return it here
+
+	// If data is not found on one replica node, it should attempt to pull from at least two nodes before declaring data doesn't exist
+	// This should attempt to grab data from the ReplicatedNodes list
 
 	return false, nil
 }
