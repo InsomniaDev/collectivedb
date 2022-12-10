@@ -164,6 +164,8 @@ func RetrieveData(key, bucket *string) (bool, *[]byte) {
 func DeleteData(key, bucket *string) (bool, error) {
 	if deleted, err := database.Delete(key, bucket); deleted {
 		return true, err
+	} else if err != nil {
+		return false, err
 	}
 
 	// The data does not exist on this node
@@ -171,7 +173,7 @@ func DeleteData(key, bucket *string) (bool, error) {
 	// TODO: Send a delete command to all replicas to delete the data
 	// TODO: Wait for response of confirmation if that env variable is set
 
-	return true, nil
+	return false, nil
 }
 
 // UpdateReplicas

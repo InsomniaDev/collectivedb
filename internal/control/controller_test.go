@@ -54,7 +54,7 @@ func TestStoreData(t *testing.T) {
 			if got1 != tt.want1 && tt.name != "New" {
 				t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
 			} else {
-				if len(*tt.want1) != len("6e79bdbb-1c82-49de-a0ad-abafde999ebc") {
+				if len(*got1) != len("6e79bdbb-1c82-49de-a0ad-abafde999ebc") {
 					t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
 				}
 			}
