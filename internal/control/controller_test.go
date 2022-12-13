@@ -13,9 +13,10 @@ func TestStoreData(t *testing.T) {
 	testValue := []byte("value")
 
 	type args struct {
-		key    *string
-		bucket *string
-		data   *[]byte
+		key          *string
+		bucket       *string
+		data         *[]byte
+		replicaStore bool
 	}
 	tests := []struct {
 		name  string
@@ -27,9 +28,10 @@ func TestStoreData(t *testing.T) {
 		{
 			name: "New",
 			args: args{
-				key:    &newData,
-				bucket: &bucket,
-				data:   &testValue,
+				key:          &newData,
+				bucket:       &bucket,
+				data:         &testValue,
+				replicaStore: false,
 			},
 			want:  true,
 			want1: &newData,
@@ -37,9 +39,10 @@ func TestStoreData(t *testing.T) {
 		{
 			name: "UpdatedOtherNode",
 			args: args{
-				key:    &testKey,
-				bucket: &bucket,
-				data:   &testValue,
+				key:          &testKey,
+				bucket:       &bucket,
+				data:         &testValue,
+				replicaStore: false,
 			},
 			want:  true,
 			want1: &testKey,
@@ -47,7 +50,7 @@ func TestStoreData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := StoreData(tt.args.key, tt.args.bucket, tt.args.data)
+			got, got1 := StoreData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore)
 			if got != tt.want {
 				t.Errorf("StoreData() got = %v, want %v", got, tt.want)
 			}

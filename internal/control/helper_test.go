@@ -138,7 +138,8 @@ func Test_determineReplicas(t *testing.T) {
 			case "Success2":
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "2")
 			case "Replicas":
-				os.Setenv("COLLECTIVE_REPLICA_COUNT", "10")
+				os.Setenv("COLLECTIVE_REPLICA_COUNT", "2")
+				controller.CollectiveNodes[0].FullGroup = false
 			case "Failed":
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "NAN")
 			}
@@ -285,6 +286,14 @@ func Test_removeNode(t *testing.T) {
 			wantNodeRemoved: Node{},
 			wantErr:         true,
 		},
+		{
+			name: "Failure Rep Group",
+			args: args{
+				replicationGroup: 3,
+			},
+			wantNodeRemoved: Node{},
+			wantErr:         true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -295,6 +304,53 @@ func Test_removeNode(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotNodeToRemove, tt.wantNodeRemoved) {
 				t.Errorf("removeNode() = %v, want %v", gotNodeToRemove, tt.wantNodeRemoved)
+			}
+		})
+	}
+}
+
+func Test_distributeData(t *testing.T) {
+	bucket := "test"
+
+	testKey := "key"
+	testValue := []byte("value")
+
+	falseBucket := ""
+	falseKey := ""
+
+	type args struct {
+		key    *string
+		bucket *string
+		data   *[]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				key:    &testKey,
+				bucket: &bucket,
+				data:   &testValue,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Failure",
+			args: args{
+				key:    &falseKey,
+				bucket: &falseBucket,
+				data:   &testValue,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := distributeData(tt.args.key, tt.args.bucket, tt.args.data); (err != nil) != tt.wantErr {
+				t.Errorf("distributeData() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

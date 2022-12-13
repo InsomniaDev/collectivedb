@@ -137,6 +137,19 @@ func syncData() (err error) {
 //
 //	when adding a node to an existing replica group, remove a node that holds the data but is not part of the replication group
 func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
+	// Get the replica group with nodes from collective
+	replicatedNodesForGroup := []Node{}
+	for i := range controller.CollectiveNodes {
+		if controller.CollectiveNodes[i].ReplicaNum == replicationGroup {
+			replicatedNodesForGroup = controller.CollectiveNodes[i].ReplicaNodes
+			break
+		}
+	}
+
+	if replicatedNodesForGroup == nil {
+		return Node{}, errors.New("replication group doesn't exist")
+	}
+
 	found := false
 	// Determine node to remove data from
 	for i := range controller.Data.DataLocations {
@@ -148,8 +161,8 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 				matchesCurrentGroup := false
 
 				// Go through nodes for the replica group and compare
-				for rg := range controller.ReplicaNodes {
-					if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == controller.ReplicaNodes[rg].NodeId {
+				for rg := range replicatedNodesForGroup {
+					if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == replicatedNodesForGroup[rg].NodeId {
 						matchesCurrentGroup = true
 					}
 				}
@@ -247,15 +260,19 @@ func determineReplicas() (err error) {
 			// Determine if there are more nodes in the group than the replica count
 			if len(rg.ReplicaNodes) > replicaCount {
 				// We don't want to add to a replica group that is already oversized
-				break
+				return errors.New("too many nodes in replica currently")
 			}
 
 			// Update the node that we are part of the group now
 			// apiCall that will go through `ReplicateRequest` on another node
 
 			// Update this controller data with the replication group
+			controller.ReplicaNodeId = rg.ReplicaNum
 			controller.ReplicaNodes = rg.ReplicaNodes
-			controller.ReplicaNodes = append(controller.ReplicaNodes)
+			controller.ReplicaNodes = append(controller.ReplicaNodes, Node{
+				NodeId:    controller.NodeId,
+				IpAddress: controller.IpAddress,
+			})
 
 			// remove node not in replication group
 			go removeNode(rg.ReplicaNum)
@@ -311,6 +328,26 @@ func terminateReplicas() (err error) {
 	// 	controller.ReplicaNodes = append(controller.ReplicaNodes, controller.CollectiveNodes[randIndex])
 	// }
 	// return nil
+
+	return nil
+}
+
+func distributeData(key, bucket *string, data *[]byte) error {
+
+	if *key == "" || *bucket == "" {
+		return errors.New("invalid parameters")
+	}
+
+	// Add the nodes updated to the DataDictionary
+
+	controller.Data.DataLocations = append(controller.Data.DataLocations, Data{
+		ReplicaNodeGroup:  controller.ReplicaNodeId,
+		DataKey:           *key,
+		Database:          *bucket,
+		ReplicatedNodeIds: []string{},
+	})
+
+	// Fire off DataDictionary update process through the collective
 
 	return nil
 }

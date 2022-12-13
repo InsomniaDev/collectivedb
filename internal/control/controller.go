@@ -16,6 +16,7 @@ type Controller struct {
 	NodeId          string         `json:"nodeId"`             // UUID of this node within the NodeList
 	IpAddress       string         `json:"ipAddress"`          // IpAddress of this node
 	KubeDeployed    bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
+	ReplicaNodeId   int            `json:"replicaNodeId"`      // The replica node id
 	ReplicaNodes    []Node         `json:"replicaNodes"`       // Replica nodes of this node
 	CollectiveNodes []ReplicaGroup `json:"collectiveNodes"`    // List of node IPs that are connected to the collective
 	Data            DataDictionary `json:"data"`               // Location of all the keys to nodes
@@ -158,25 +159,18 @@ func ReplicaUpdate() {
 // ReplicaStoreData
 //
 //	Will store the data provided from another replica and not update DataDictionary or attempt to replicate
-func ReplicaStoreData() {
-
+func ReplicaStoreData(key, bucket string, data []byte) {
+	StoreData(&key, &bucket, &data, true)
 }
 
 // StoreData
 //
 //	Will store the provided data on this node
-func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
-	// TODO: Add a boolean if this is from the consumer or from a replica update
+func StoreData(key, bucket *string, data *[]byte, replicaStore bool) (bool, *string) {
 
 	ackLevel := os.Getenv("COLLECTIVE_ACK_LEVEL")
 	if ackLevel == "" {
 		ackLevel = "NONE"
-	}
-
-	distributeData := func(key, bucket *string, data *[]byte) {
-		// Add the nodes updated to the DataDictionary
-
-		// Fire off DataDictionary update process through the collective
 	}
 
 	// Data is new and doesn't exist
@@ -189,11 +183,13 @@ func StoreData(key, bucket *string, data *[]byte) (bool, *string) {
 
 		// TODO: Add this node to the DataDictionary
 
-		switch ackLevel {
-		case "ALL":
-			distributeData(key, bucket, data)
-		case "NONE":
-			go distributeData(key, bucket, data)
+		if !replicaStore {
+			switch ackLevel {
+			case "ALL":
+				distributeData(key, bucket, data)
+			case "NONE":
+				go distributeData(key, bucket, data)
+			}
 		}
 
 		return updated, key
