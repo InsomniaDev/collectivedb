@@ -83,12 +83,10 @@ func init() {
 	// Will assign replicas to this node
 	determineReplicas()
 
-	// TODO:
-
 }
 
 // startNode
-//
+//		TODO: Is this needed?
 //	Is responsible for starting the node up, syncing data
 func startNode() {
 
