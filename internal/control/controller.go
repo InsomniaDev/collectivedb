@@ -87,6 +87,7 @@ func init() {
 }
 
 // startNode
+//
 //		TODO: Is this needed?
 //	Is responsible for starting the node up, syncing data
 func startNode() {
