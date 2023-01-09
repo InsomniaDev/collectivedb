@@ -17,6 +17,7 @@ type Controller struct {
 	IpAddress       string         `json:"ipAddress"`          // IpAddress of this node
 	KubeDeployed    bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
 	ReplicaNodeId   int            `json:"replicaNodeId"`      // The replica node id
+	ReplicaNodeIds  []string       `json:"replicaNodeIds"`     // Replica node ids for distributing traffic
 	ReplicaNodes    []Node         `json:"replicaNodes"`       // Replica nodes of this node
 	CollectiveNodes []ReplicaGroup `json:"collectiveNodes"`    // List of node IPs that are connected to the collective
 	Data            DataDictionary `json:"data"`               // Location of all the keys to nodes
@@ -86,23 +87,6 @@ func init() {
 
 }
 
-// startNode
-//
-//		TODO: Is this needed?
-//	Is responsible for starting the node up, syncing data
-func startNode() {
-
-	// Check if there are nodes to sync with
-	if controller.CollectiveNodes == nil {
-		// Get the node id to sync with and populate
-		controller = findNodeLeader()
-	}
-
-	// Determine which replica group to fit into
-	// Pull data from replica group
-	// Update current database if needed
-}
-
 // IsActive
 //
 //	Returns a confirmation on if this node is currently active and processing
@@ -129,7 +113,7 @@ func NodeInfo() *Controller {
 // UpdateCollective
 //
 //	Update node list with the provided data
-func UpdateCollective() {
+func UpdateCollective(data *[]byte) {
 	// Get the first IP in the first replication group in the collective list and send the updated information to that one
 }
 
@@ -182,8 +166,6 @@ func StoreData(key, bucket *string, data *[]byte, replicaStore bool) (bool, *str
 
 		updated, key := database.Update(key, bucket, data)
 
-		// TODO: Add this node to the DataDictionary
-
 		if !replicaStore {
 			switch ackLevel {
 			case "ALL":
@@ -197,7 +179,25 @@ func StoreData(key, bucket *string, data *[]byte, replicaStore bool) (bool, *str
 	}
 
 	// This data exists already
-	// TODO: Determine what node the data is on
+	// TODO: Determine what node the data is on, if the data does exist on a node
+	dataVolume := retrieveFromDataDictionary(key)
+
+	// If the data doesn't exist yet, but a key was provided
+	if dataVolume.DataKey == "" {
+		updated, key := database.Update(key, bucket, data)
+
+		if !replicaStore {
+			switch ackLevel {
+			case "ALL":
+				distributeData(key, bucket, data)
+			case "NONE":
+				go distributeData(key, bucket, data)
+			}
+		}
+
+		return updated, key
+	}
+
 	// TODO: Send update command to all nodes in replica group to store the data
 	// TODO: Wait for response of confirmation if that env variable is set
 

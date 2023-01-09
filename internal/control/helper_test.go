@@ -62,32 +62,6 @@ func Test_determineIpAddress(t *testing.T) {
 	}
 }
 
-func Test_findNodeLeader(t *testing.T) {
-	tests := []struct {
-		name string
-		want Controller
-	}{
-		// TODO: Add test cases.
-		{
-			name: "Success",
-			want: Controller{
-				NodeId: "test-it",
-			},
-		},
-		{
-			name: "Failure",
-			want: Controller{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := findNodeLeader(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("findNodeLeader() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_determineReplicas(t *testing.T) {
 
 	controller.CollectiveNodes = []ReplicaGroup{
@@ -95,12 +69,15 @@ func Test_determineReplicas(t *testing.T) {
 			ReplicaNum: 1,
 			ReplicaNodes: []Node{
 				{
+					NodeId:    "1",
 					IpAddress: "1",
 				},
 				{
+					NodeId:    "2",
 					IpAddress: "2",
 				},
 				{
+					NodeId:    "3",
 					IpAddress: "3",
 				},
 			},
@@ -266,7 +243,6 @@ func Test_removeNode(t *testing.T) {
 		wantNodeRemoved Node
 		wantErr         bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "Success",
 			args: args{
@@ -351,6 +327,111 @@ func Test_distributeData(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := distributeData(tt.args.key, tt.args.bucket, tt.args.data); (err != nil) != tt.wantErr {
 				t.Errorf("distributeData() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_addToDataDictionary(t *testing.T) {
+	controller.Data.DataLocations = []Data{
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          "1",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"1", "2", "3", "5",
+			},
+		},
+	}
+
+	type args struct {
+		dataToInsert Data
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantNew     bool
+		wantUpdated bool
+	}{
+		{
+			name: "Updated",
+			args: args{
+				dataToInsert: Data{
+					ReplicaNodeGroup: 2,
+					DataKey:          "1",
+					Database:         "test",
+				},
+			},
+			wantNew:     false,
+			wantUpdated: true,
+		},
+		{
+			name: "New",
+			args: args{
+				dataToInsert: Data{
+					ReplicaNodeGroup: 2,
+					DataKey:          "2",
+					Database:         "test",
+				},
+			},
+			wantNew:     true,
+			wantUpdated: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotNew, gotUpdated := addToDataDictionary(tt.args.dataToInsert)
+			if gotNew != tt.wantNew {
+				t.Errorf("addToDataDictionary() gotNew = %v, want %v", gotNew, tt.wantNew)
+			}
+			if gotUpdated != tt.wantUpdated {
+				t.Errorf("addToDataDictionary() gotUpdated = %v, want %v", gotUpdated, tt.wantUpdated)
+			}
+		})
+	}
+}
+
+func Test_retrieveFromDataDictionary(t *testing.T) {
+	key := "1"
+	doesntExistKey := "2"
+	controller.Data.DataLocations = []Data{
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          key,
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"1", "2", "3", "5",
+			},
+		},
+	}
+
+	type args struct {
+		key *string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantData Data
+	}{
+		{
+			name: "Exists",
+			args: args{
+				key: &key,
+			},
+			wantData: controller.Data.DataLocations[0],
+		},
+		{
+			name: "Doesn't Exist",
+			args: args{
+				key: &doesntExistKey,
+			},
+			wantData: Data{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotData := retrieveFromDataDictionary(tt.args.key); !reflect.DeepEqual(gotData, tt.wantData) {
+				t.Errorf("retrieveFromDataDictionary() = %v, want %v", gotData, tt.wantData)
 			}
 		})
 	}

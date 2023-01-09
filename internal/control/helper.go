@@ -2,6 +2,7 @@ package control
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -19,6 +20,50 @@ import (
 //	Will generated a unique uuid for the node upon node creation
 func createUuid() string {
 	return uuid.New().String()
+}
+
+// retrieveFromDataDictionary
+// Will retrieve the key from the dictionary if it exists
+func retrieveFromDataDictionary(key *string) (data Data) {
+
+	for i := range controller.Data.DataLocations {
+		if controller.Data.DataLocations[i].DataKey == *key {
+			return controller.Data.DataLocations[i]
+		}
+	}
+
+	return
+}
+
+// addToDataDictionary
+//
+//	Will add the data structure to the dictionary, or update the location
+func addToDataDictionary(dataToInsert Data) (new, updated bool) {
+
+	for i := range controller.Data.DataLocations {
+		if controller.Data.DataLocations[i].DataKey == dataToInsert.DataKey {
+			// already exists, so check if the data matches
+			controller.Data.DataLocations[i] = dataToInsert
+
+			updated = true
+			break
+		}
+	}
+
+	// if the data doesn't exist already
+	if !updated {
+		controller.Data.DataLocations = append(controller.Data.DataLocations, dataToInsert)
+		new = true
+	}
+
+	// Update the collective with this new data - just this data though
+	if data, err := json.Marshal(dataToInsert); err != nil {
+		log.Println(err)
+		return false, false
+	} else {
+		UpdateCollective(&data)
+	}
+	return
 }
 
 // determineIpAddress
@@ -104,32 +149,11 @@ func determineIpAddress() string {
 	return discoverLocalIp()
 }
 
-// findNodeLeader
-//
-//	Will determine the leader
-func findNodeLeader() Controller {
-	// Determine if the env variable is set for the node connection
-	nodeUrl := os.Getenv("COLLECTIVE_LEADER_NODE")
-	if nodeUrl != "" {
-		// Grab data from the node leader
-		// Determine if node leader is the first IP
-		// Grab data from the first IP
-		// return data
-	}
-
-	// Determine if we can see the leader through the k8s service, if part of k8s
-	if controller.KubeDeployed {
-		// Check against all pods within kubernetes service if they are part of the collective
-		// This check should send the current connection string for those pods to connect to us
-	}
-
-	return Controller{}
-}
-
 // syncData
 //
 //	is responsible for syncing data between nodes once an application starts up
 func syncData() (err error) {
+	// TODO: Need to add all of the logic into here
 	return nil
 }
 
@@ -273,6 +297,7 @@ func determineReplicas() (err error) {
 				NodeId:    controller.NodeId,
 				IpAddress: controller.IpAddress,
 			})
+			controller.ReplicaNodeIds = append(controller.ReplicaNodeIds, controller.NodeId)
 
 			// remove node not in replication group
 			go removeNode(rg.ReplicaNum)
@@ -338,13 +363,12 @@ func distributeData(key, bucket *string, data *[]byte) error {
 		return errors.New("invalid parameters")
 	}
 
-	// Add the nodes updated to the DataDictionary
-
-	controller.Data.DataLocations = append(controller.Data.DataLocations, Data{
+	// Add this node to the DataDictionary
+	addToDataDictionary(Data{
 		ReplicaNodeGroup:  controller.ReplicaNodeId,
 		DataKey:           *key,
 		Database:          *bucket,
-		ReplicatedNodeIds: []string{},
+		ReplicatedNodeIds: controller.ReplicaNodeIds,
 	})
 
 	// Fire off DataDictionary update process through the collective

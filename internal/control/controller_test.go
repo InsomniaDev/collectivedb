@@ -24,7 +24,6 @@ func TestStoreData(t *testing.T) {
 		want  bool
 		want1 *string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "New",
 			args: args{
@@ -56,7 +55,7 @@ func TestStoreData(t *testing.T) {
 			}
 			if got1 != tt.want1 && tt.name != "New" {
 				t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
-			} else {
+			} else if tt.name == "New" { // Check that a new key was generated
 				if len(*got1) != len("6e79bdbb-1c82-49de-a0ad-abafde999ebc") {
 					t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
 				}
@@ -72,6 +71,8 @@ func TestRetrieveData(t *testing.T) {
 	testValue := []byte("value")
 
 	testFailKey := "nope"
+
+	StoreData(&testKey, &bucket, &testValue, false)
 
 	type args struct {
 		key    *string
