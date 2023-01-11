@@ -64,9 +64,9 @@ func Test_determineIpAddress(t *testing.T) {
 
 func Test_determineReplicas(t *testing.T) {
 
-	controller.CollectiveNodes = []ReplicaGroup{
+	controller.Data.CollectiveNodes = []ReplicaGroup{
 		{
-			ReplicaNum: 1,
+			ReplicaNodeGroup: 1,
 			ReplicaNodes: []Node{
 				{
 					NodeId:    "1",
@@ -116,7 +116,7 @@ func Test_determineReplicas(t *testing.T) {
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "2")
 			case "Replicas":
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "2")
-				controller.CollectiveNodes[0].FullGroup = false
+				controller.Data.CollectiveNodes[0].FullGroup = false
 			case "Failed":
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "NAN")
 			}
@@ -144,9 +144,9 @@ func Test_removeNode(t *testing.T) {
 		},
 	}
 
-	controller.CollectiveNodes = []ReplicaGroup{
+	controller.Data.CollectiveNodes = []ReplicaGroup{
 		{
-			ReplicaNum: 1,
+			ReplicaNodeGroup: 1,
 			ReplicaNodes: []Node{
 				{
 					NodeId:    "1",
@@ -164,7 +164,7 @@ func Test_removeNode(t *testing.T) {
 			FullGroup: true,
 		},
 		{
-			ReplicaNum: 2,
+			ReplicaNodeGroup: 2,
 			ReplicaNodes: []Node{
 				{
 					NodeId:    "4",

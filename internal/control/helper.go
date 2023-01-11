@@ -163,9 +163,9 @@ func syncData() (err error) {
 func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 	// Get the replica group with nodes from collective
 	replicatedNodesForGroup := []Node{}
-	for i := range controller.CollectiveNodes {
-		if controller.CollectiveNodes[i].ReplicaNum == replicationGroup {
-			replicatedNodesForGroup = controller.CollectiveNodes[i].ReplicaNodes
+	for i := range controller.Data.CollectiveNodes {
+		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == replicationGroup {
+			replicatedNodesForGroup = controller.Data.CollectiveNodes[i].ReplicaNodes
 			break
 		}
 	}
@@ -208,12 +208,12 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 
 	// Cycle through the collective group to determine which node we are removing
 	found = false
-	for i := range controller.CollectiveNodes {
-		for rg := range controller.CollectiveNodes[i].ReplicaNodes {
+	for i := range controller.Data.CollectiveNodes {
+		for rg := range controller.Data.CollectiveNodes[i].ReplicaNodes {
 			// Does the collective node replica group node match the node id we are attempting to remove
-			if controller.CollectiveNodes[i].ReplicaNodes[rg].NodeId == nodeRemoved.NodeId {
+			if controller.Data.CollectiveNodes[i].ReplicaNodes[rg].NodeId == nodeRemoved.NodeId {
 				// Update so that we have the IP to send removal of data requests to
-				nodeRemoved = controller.CollectiveNodes[i].ReplicaNodes[rg]
+				nodeRemoved = controller.Data.CollectiveNodes[i].ReplicaNodes[rg]
 				found = true
 				break
 			}
@@ -278,7 +278,7 @@ func determineReplicas() (err error) {
 	// 				eg., search through the data dictionary for replica group and remove the replica nodes
 
 	// Cycle through the collective replica groups and determine if there is a new group
-	for _, rg := range controller.CollectiveNodes {
+	for _, rg := range controller.Data.CollectiveNodes {
 		// if it is not a full replica group
 		if !rg.FullGroup {
 			// Determine if there are more nodes in the group than the replica count
@@ -291,7 +291,7 @@ func determineReplicas() (err error) {
 			// apiCall that will go through `ReplicateRequest` on another node
 
 			// Update this controller data with the replication group
-			controller.ReplicaNodeId = rg.ReplicaNum
+			controller.ReplicaNodeId = rg.ReplicaNodeGroup
 			controller.ReplicaNodes = rg.ReplicaNodes
 			controller.ReplicaNodes = append(controller.ReplicaNodes, Node{
 				NodeId:    controller.NodeId,
@@ -300,7 +300,7 @@ func determineReplicas() (err error) {
 			controller.ReplicaNodeIds = append(controller.ReplicaNodeIds, controller.NodeId)
 
 			// remove node not in replication group
-			go removeNode(rg.ReplicaNum)
+			go removeNode(rg.ReplicaNodeGroup)
 
 			// start pulling in the data required
 			go syncData()
@@ -372,6 +372,7 @@ func distributeData(key, bucket *string, data *[]byte) error {
 	})
 
 	// Fire off DataDictionary update process through the collective
+	// TODO: Start here today
 
 	return nil
 }

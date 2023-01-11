@@ -13,21 +13,20 @@ import (
 
 // Main Controller struct
 type Controller struct {
-	NodeId          string         `json:"nodeId"`             // UUID of this node within the NodeList
-	IpAddress       string         `json:"ipAddress"`          // IpAddress of this node
-	KubeDeployed    bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
-	ReplicaNodeId   int            `json:"replicaNodeId"`      // The replica node id
-	ReplicaNodeIds  []string       `json:"replicaNodeIds"`     // Replica node ids for distributing traffic
-	ReplicaNodes    []Node         `json:"replicaNodes"`       // Replica nodes of this node
-	CollectiveNodes []ReplicaGroup `json:"collectiveNodes"`    // List of node IPs that are connected to the collective
-	Data            DataDictionary `json:"data"`               // Location of all the keys to nodes
+	NodeId         string         `json:"nodeId"`             // UUID of this node within the NodeList
+	IpAddress      string         `json:"ipAddress"`          // IpAddress of this node
+	KubeDeployed   bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
+	ReplicaNodeId  int            `json:"replicaNodeId"`      // The replica node id
+	ReplicaNodeIds []string       `json:"replicaNodeIds"`     // Replica node ids for distributing traffic
+	ReplicaNodes   []Node         `json:"replicaNodes"`       // Replica nodes of this node
+	Data           DataDictionary `json:"data"`               // Location of all the keys to nodes
 }
 
 // ReplicaGroup
 type ReplicaGroup struct {
-	ReplicaNum   int    `json:"replicaNumber"`
-	ReplicaNodes []Node `json:"nodes"`
-	FullGroup    bool   `json:"fullGroup"`
+	ReplicaNodeGroup int    `json:"replicaNodeGroup"`
+	ReplicaNodes     []Node `json:"nodes"`
+	FullGroup        bool   `json:"fullGroup"`
 }
 
 // Node struct
@@ -38,7 +37,8 @@ type Node struct {
 
 // DataDictionary struct
 type DataDictionary struct {
-	DataLocations []Data `json:"data"`
+	DataLocations   []Data         `json:"data"`
+	CollectiveNodes []ReplicaGroup `json:"collectiveNodes"` // List of node IPs that are connected to the collective
 }
 
 // Data struct
@@ -68,10 +68,11 @@ func init() {
 			log.Fatal("Failed to parse the configuration data")
 		}
 
+		// TODO: determine if the replica still
 		// TODO: update and refresh data
 
 		// return if this is the correct group, if the group no longer exists, then start this as a new collective
-
+		return
 	}
 
 	controller.NodeId = createUuid()
