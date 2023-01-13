@@ -49,15 +49,15 @@ func TestStoreData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := StoreData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore)
+			got, got1 := storeData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore)
 			if got != tt.want {
-				t.Errorf("StoreData() got = %v, want %v", got, tt.want)
+				t.Errorf("storeData() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 && tt.name != "New" {
-				t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("storeData() got1 = %v, want %v", got1, tt.want1)
 			} else if tt.name == "New" { // Check that a new key was generated
 				if len(*got1) != len("6e79bdbb-1c82-49de-a0ad-abafde999ebc") {
-					t.Errorf("StoreData() got1 = %v, want %v", got1, tt.want1)
+					t.Errorf("storeData() got1 = %v, want %v", got1, tt.want1)
 				}
 			}
 		})
@@ -72,7 +72,7 @@ func TestRetrieveData(t *testing.T) {
 
 	testFailKey := "nope"
 
-	StoreData(&testKey, &bucket, &testValue, false)
+	storeData(&testKey, &bucket, &testValue, false)
 
 	type args struct {
 		key    *string

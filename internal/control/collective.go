@@ -2,7 +2,6 @@ package control
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -38,32 +37,74 @@ func retrieveFromDataDictionary(key *string) (data Data) {
 // addToDataDictionary
 //
 //	Will add the data structure to the dictionary, or update the location
-func addToDataDictionary(dataToInsert Data) (new, updated bool) {
+func addToDataDictionary(dataToInsert Data) (updateType int) {
 
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].DataKey == dataToInsert.DataKey {
 			// already exists, so check if the data matches
 			controller.Data.DataLocations[i] = dataToInsert
 
-			updated = true
-			break
+			return UPDATE
 		}
 	}
 
 	// if the data doesn't exist already
-	if !updated {
-		controller.Data.DataLocations = append(controller.Data.DataLocations, dataToInsert)
-		new = true
-	}
+	controller.Data.DataLocations = append(controller.Data.DataLocations, dataToInsert)
+	return NEW
+}
 
-	// Update the collective with this new data - just this data though
-	if data, err := json.Marshal(dataToInsert); err != nil {
-		log.Println(err)
-		return false, false
-	} else {
-		UpdateCollective(&data)
+// collectiveUpdate
+//
+// This will go through and update the collective memory, not touching the actual data
+func collectiveUpdate(update DataUpdate) {
+	// If this is a data update
+	if update.DataUpdate.Update {
+		// Update the data dictionary
+		switch update.DataUpdate.UpdateType {
+		case NEW:
+			// Adds the new element to the end of the array
+			controller.Data.DataLocations = append(controller.Data.DataLocations, update.DataUpdate.UpdateData)
+		case UPDATE:
+			// Updates the element where it is
+			for i := range controller.Data.DataLocations {
+				if controller.Data.DataLocations[i].DataKey == update.DataUpdate.UpdateData.DataKey {
+					controller.Data.DataLocations[i] = update.DataUpdate.UpdateData
+					break
+				}
+			}
+		case DELETE:
+			// Deletes the element from the array
+			for i := range controller.Data.DataLocations {
+				if controller.Data.DataLocations[i].DataKey == update.DataUpdate.UpdateData.DataKey {
+					controller.Data.DataLocations = removeFromDictionarySlice(controller.Data.DataLocations, i)
+					break
+				}
+			}
+		}
+	} else if update.ReplicaUpdate.Update {
+		// Update the data dictionary
+		switch update.ReplicaUpdate.UpdateType {
+		case NEW:
+			// Adds the new element to the end of the array
+			controller.Data.CollectiveNodes = append(controller.Data.CollectiveNodes, update.ReplicaUpdate.UpdateReplica)
+		case UPDATE:
+			// Updates the element where it is
+			for i := range controller.Data.CollectiveNodes {
+				if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup {
+					controller.Data.CollectiveNodes[i] = update.ReplicaUpdate.UpdateReplica
+					break
+				}
+			}
+		case DELETE:
+			// Deletes the element from the array
+			for i := range controller.Data.CollectiveNodes {
+				if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup {
+					controller.Data.CollectiveNodes = removeFromDictionarySlice(controller.Data.CollectiveNodes, i)
+					break
+				}
+			}
+		}
 	}
-	return
 }
 
 // determineIpAddress
@@ -291,7 +332,7 @@ func determineReplicas() (err error) {
 			// apiCall that will go through `ReplicateRequest` on another node
 
 			// Update this controller data with the replication group
-			controller.ReplicaNodeId = rg.ReplicaNodeGroup
+			controller.ReplicaNodeGroup = rg.ReplicaNodeGroup
 			controller.ReplicaNodes = rg.ReplicaNodes
 			controller.ReplicaNodes = append(controller.ReplicaNodes, Node{
 				NodeId:    controller.NodeId,
@@ -363,16 +404,36 @@ func distributeData(key, bucket *string, data *[]byte) error {
 		return errors.New("invalid parameters")
 	}
 
-	// Add this node to the DataDictionary
-	addToDataDictionary(Data{
-		ReplicaNodeGroup:  controller.ReplicaNodeId,
+	newData := Data{
+		ReplicaNodeGroup:  controller.ReplicaNodeGroup,
 		DataKey:           *key,
 		Database:          *bucket,
 		ReplicatedNodeIds: controller.ReplicaNodeIds,
-	})
+	}
 
-	// Fire off DataDictionary update process through the collective
-	// TODO: Start here today
+	// TODO: API - send data update to ReplicaStoreData
+
+	// Add this node to the DataDictionary
+	updateType := addToDataDictionary(newData)
+
+	// Always start with the first node so that data gets updated consequtively
+	updateData := DataUpdate{
+		DataUpdate: CollectiveDataUpdate{
+			Update:     true,
+			UpdateType: updateType,
+			UpdateData: newData,
+		},
+	}
+	log.Println(updateData)
+	// log.Println(controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress)
+	// TODO: API - Fire off DataDictionary update process through the collective
 
 	return nil
+}
+
+// removeFromDictionarySlice
+// removes the specified index from the slice and returns that slice, this does reorder the array by switching out the elements
+func removeFromDictionarySlice[T collective](s []T, i int) []T {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
 }

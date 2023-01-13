@@ -348,10 +348,10 @@ func Test_addToDataDictionary(t *testing.T) {
 		dataToInsert Data
 	}
 	tests := []struct {
-		name        string
-		args        args
-		wantNew     bool
-		wantUpdated bool
+		name           string
+		args           args
+		wantUpdateType int
+		wantUpdated    bool
 	}{
 		{
 			name: "Updated",
@@ -362,8 +362,8 @@ func Test_addToDataDictionary(t *testing.T) {
 					Database:         "test",
 				},
 			},
-			wantNew:     false,
-			wantUpdated: true,
+			wantUpdateType: UPDATE,
+			wantUpdated:    true,
 		},
 		{
 			name: "New",
@@ -374,18 +374,15 @@ func Test_addToDataDictionary(t *testing.T) {
 					Database:         "test",
 				},
 			},
-			wantNew:     true,
-			wantUpdated: false,
+			wantUpdateType: NEW,
+			wantUpdated:    false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotNew, gotUpdated := addToDataDictionary(tt.args.dataToInsert)
-			if gotNew != tt.wantNew {
-				t.Errorf("addToDataDictionary() gotNew = %v, want %v", gotNew, tt.wantNew)
-			}
-			if gotUpdated != tt.wantUpdated {
-				t.Errorf("addToDataDictionary() gotUpdated = %v, want %v", gotUpdated, tt.wantUpdated)
+			gotUpdateType := addToDataDictionary(tt.args.dataToInsert)
+			if gotUpdateType != tt.wantUpdateType {
+				t.Errorf("addToDataDictionary() gotUpdateType = %v, want %v", gotUpdateType, tt.wantUpdateType)
 			}
 		})
 	}
@@ -432,6 +429,63 @@ func Test_retrieveFromDataDictionary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotData := retrieveFromDataDictionary(tt.args.key); !reflect.DeepEqual(gotData, tt.wantData) {
 				t.Errorf("retrieveFromDataDictionary() = %v, want %v", gotData, tt.wantData)
+			}
+		})
+	}
+}
+
+func Test_removeFromDictionarySlice(t *testing.T) {
+	type args struct {
+		s []ReplicaGroup
+		i int
+	}
+	tests := []struct {
+		name string
+		args args
+		want []ReplicaGroup
+	}{
+		{
+			name: "Remove an element",
+			args: args{
+				s: []ReplicaGroup{
+					{
+						ReplicaNodeGroup: 1,
+					},
+					{
+						ReplicaNodeGroup: 2,
+					},
+					{
+						ReplicaNodeGroup: 3,
+					},
+				},
+				i: 1,
+			},
+			want: []ReplicaGroup{
+				{
+					ReplicaNodeGroup: 1,
+				},
+				{
+					ReplicaNodeGroup: 3,
+				},
+			},
+		},
+		{
+			name: "An empty array",
+			args: args{
+				s: []ReplicaGroup{
+					{
+						ReplicaNodeGroup: 1,
+					},
+				},
+				i: 0,
+			},
+			want: []ReplicaGroup{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := removeFromDictionarySlice(tt.args.s, tt.args.i); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("removeFromDictionarySlice() = %v, want %v", got, tt.want)
 			}
 		})
 	}
