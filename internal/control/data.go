@@ -69,8 +69,13 @@ func retrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 	}
 
 	// The data does not exist on this node
-	// TODO: Determine what node the data exists on
-	// TODO: Go retrieve the data and then return it here
+	// Determine what node the data exists on
+	for i := range controller.Data.DataLocations {
+		if controller.Data.DataLocations[i].DataKey == *key {
+			log.Println(controller.Data.DataLocations[i].ReplicaNodeGroup)
+			// TODO: API - Go retrieve the data and then return it here
+		}
+	}
 
 	// If data is not found on one replica node, it should attempt to pull from at least two nodes before declaring data doesn't exist
 	// This should attempt to grab data from the ReplicatedNodes list
@@ -86,9 +91,13 @@ func deleteDataFromDatabase(key, bucket *string) (bool, error) {
 	}
 
 	// The data does not exist on this node
-	// TODO: Determine what node the data exists on
-	// TODO: Send a delete command to all replicas to delete the data
-	// TODO: Wait for response of confirmation if that env variable is set
+	// Determine what node the data exists on
+	for i := range controller.Data.DataLocations {
+		if controller.Data.DataLocations[i].DataKey == *key {
+			log.Println(controller.Data.DataLocations[i].ReplicaNodeGroup)
+			// TODO: API - Send delete command to the first node in the replica group, Wait for response of confirmation if that env variable is set
+		}
+	}
 
 	return false, nil
 }

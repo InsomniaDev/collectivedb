@@ -204,7 +204,12 @@ func determineIpAddress() string {
 //
 //	is responsible for syncing data between nodes once an application starts up
 func syncData() (err error) {
-	// TODO: Need to add all of the logic into here
+	// Check if there are more than one replica nodes in this group, since in the previous call we set the node in the group
+	// Check that the first member of the group is not this node, if it is then there is no point requesting data
+	if len(controller.ReplicaNodes) > 1 && controller.ReplicaNodes[0].NodeId != controller.NodeId {
+		// TODO: API - Send a request for all of the data in the replica group.
+		log.Println(controller.ReplicaNodes[0].IpAddress)
+	}
 	return nil
 }
 
