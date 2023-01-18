@@ -38,18 +38,24 @@ func retrieveFromDataDictionary(key *string) (data Data) {
 //
 //	Will add the data structure to the dictionary, or update the location
 func addToDataDictionary(dataToInsert Data) (updateType int) {
+	collectiveMemoryMutex.Lock()
 
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].DataKey == dataToInsert.DataKey {
 			// already exists, so check if the data matches
 			controller.Data.DataLocations[i] = dataToInsert
 
+			// Unlock and return
+			collectiveMemoryMutex.Unlock()
 			return UPDATE
 		}
 	}
 
 	// if the data doesn't exist already
 	controller.Data.DataLocations = append(controller.Data.DataLocations, dataToInsert)
+
+	// Unlock and return
+	collectiveMemoryMutex.Unlock()
 	return NEW
 }
 
@@ -57,6 +63,8 @@ func addToDataDictionary(dataToInsert Data) (updateType int) {
 //
 // This will go through and update the collective memory, not touching the actual data
 func collectiveUpdate(update DataUpdate) {
+	collectiveMemoryMutex.Lock()
+
 	// If this is a data update
 	if update.DataUpdate.Update {
 		// Update the data dictionary
@@ -105,6 +113,8 @@ func collectiveUpdate(update DataUpdate) {
 			}
 		}
 	}
+
+	collectiveMemoryMutex.Unlock()
 }
 
 // determineIpAddress

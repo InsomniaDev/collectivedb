@@ -3,7 +3,6 @@ package control
 // Thoughts: for the node IP it could be <IP_ADDRESS>/node?<NODE_ID>
 import (
 	"log"
-	"sync"
 )
 
 // Pull from local database, if doesn't exist then
@@ -118,7 +117,6 @@ func ReplicaUpdate(update DataUpdate) {
 	// Update the collective with the new information
 	collectiveUpdate(update)
 
-	
 }
 
 // ReplicaStoreData
@@ -149,21 +147,6 @@ func DeleteData(key, bucket *string) (bool, error) {
 	return deleteDataFromDatabase(key, bucket)
 }
 
-// UpdateReplicas
-//
-//	Will update the replicas on the data changes
-//
-// TODO: This might need to go somewhere else
-func UpdateReplicas(urls []string, hashedKey int) {
-
-	// Use a mutex to synchronize access to the list of URLs.
-	var mu sync.Mutex
-	mu.Lock()
-	defer mu.Unlock()
-
-	// for replicaNode := range
-
-	// Send the data to the URL with the next highest hash.
-	// url := urlMap[nextHash]
-	// sendData(url, data)
-}
+// var mu sync.Mutex
+// mu.Lock()
+// defer mu.Unlock()

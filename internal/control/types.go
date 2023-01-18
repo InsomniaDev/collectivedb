@@ -1,5 +1,7 @@
 package control
 
+import "sync"
+
 // Main Controller struct
 type Controller struct {
 	NodeId           string         `json:"nodeId"`             // UUID of this node within the NodeList
@@ -45,6 +47,8 @@ type Data struct {
 var (
 	active     bool
 	controller Controller
+
+	collectiveMemoryMutex sync.Mutex
 )
 
 // Update Data Type
