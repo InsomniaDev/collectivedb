@@ -148,19 +148,19 @@ func Test_deleteDataFromDatabase(t *testing.T) {
 		{
 			name: "Deleted",
 			args: args{
-				key: &key,
+				key:    &key,
 				bucket: &bucket,
 			},
-			want: true,
+			want:    true,
 			wantErr: false,
 		},
 		{
 			name: "Doesn't exist",
 			args: args{
-				key: &wrongKey,
+				key:    &wrongKey,
 				bucket: &bucket,
 			},
-			want: true,
+			want:    true,
 			wantErr: false,
 		},
 	}
