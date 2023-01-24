@@ -1,0 +1,47 @@
+// https://developers.google.com/protocol-buffers/docs/proto3#nested
+// https://developers.google.com/protocol-buffers/docs/overview
+
+/*
+*
+* protoc --go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    api/api.proto
+*
+**/
+
+syntax = "proto3";
+
+package main;
+
+option go_package = "./collective";
+
+message DataUpdates {
+    message CollectiveDataUpdate {
+        bool update = 1;
+        int32 updateType = 2;
+        message Data {
+            int32 replicaNodeGroup = 1;
+            string dataKey = 2;
+            string database = 3;
+            repeated string replicatedNodeIds = 4;
+        }
+    }
+    message CollectiveReplicaUpdate {
+        bool update = 1;
+        int32 updateType = 2;
+        message UpdateReplica {
+	        int32 replicaNodeGroup = 1;
+	        bool fullGroup = 2;
+	        message replicaNodes {
+                string rodeId = 1;
+                string ipAddress = 2;
+            }
+        }
+    }
+}
+
+message Data {
+    string key = 1;
+    string database = 2;
+    bytes data = 3;
+}
