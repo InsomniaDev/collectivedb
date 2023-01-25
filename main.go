@@ -8,6 +8,9 @@ import (
 	"github.com/insomniadev/collective-db/database"
 )
 
+// Setup the api
+// https://github.com/grpc/grpc-go/blob/master/examples/route_guide/server/server.go
+
 func main() {
 
 	// Retrieve the depth that the hash function should extend to

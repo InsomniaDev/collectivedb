@@ -81,7 +81,7 @@ func CollectiveUpdate(update DataUpdate) {
 		if controller.ReplicaNodes[i].NodeId != controller.NodeId {
 			// Send the data to the replica node
 
-			// TODO: API - Send the data to the api endpoint for the ReplicaUpdate function
+			// TODO: API - Send the data to the api endpoint for the ReplicaUpdate function - ReplicaUpdate rpc
 			log.Println(controller.ReplicaNodes[i].IpAddress)
 		}
 	}
@@ -94,7 +94,7 @@ func CollectiveUpdate(update DataUpdate) {
 			// 	Check that there is another element in the array
 			if len(controller.Data.CollectiveNodes) >= i+2 {
 
-				// TODO: API - Send the data to the next node
+				// TODO: API - Send the data to the next node - DictionaryUpdate rpc
 				log.Println(controller.Data.CollectiveNodes[i+1].ReplicaNodes[0].IpAddress)
 			}
 		}

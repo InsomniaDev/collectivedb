@@ -207,7 +207,7 @@ func syncData() (err error) {
 	// Check if there are more than one replica nodes in this group, since in the previous call we set the node in the group
 	// Check that the first member of the group is not this node, if it is then there is no point requesting data
 	if len(controller.ReplicaNodes) > 1 && controller.ReplicaNodes[0].NodeId != controller.NodeId {
-		// TODO: API - Send a request for all of the data in the replica group.
+		// TODO: API - Send a request for all of the data in the replica group. - ReplicaUpdate rpc
 		log.Println(controller.ReplicaNodes[0].IpAddress)
 	}
 	return nil
@@ -285,7 +285,7 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 	}
 
 	var callToRemove = func(data []Data) {
-		// TODO: API Call to remove all of these data entries to the IP of the remove node
+		// TODO: API Call to remove all of these data entries to the IP of the remove node - DictionaryUpdate rpc
 	}
 
 	// Go through and remove all of the data that this node has for this replica group
@@ -426,7 +426,7 @@ func distributeData(key, bucket *string, data *[]byte) error {
 		ReplicatedNodeIds: controller.ReplicaNodeIds,
 	}
 
-	// TODO: API - send data update to ReplicaStoreData
+	// TODO: API - send data update to ReplicaStoreData - ReplicaUpdate rpc
 
 	// Add this node to the DataDictionary
 	updateType := addToDataDictionary(newData)
@@ -441,7 +441,7 @@ func distributeData(key, bucket *string, data *[]byte) error {
 	}
 	log.Println(updateData)
 	// log.Println(controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress)
-	// TODO: API - Fire off DataDictionary update process through the collective
+	// TODO: API - Fire off DataDictionary update process through the collective - DictionaryUpdate rpc
 
 	return nil
 }

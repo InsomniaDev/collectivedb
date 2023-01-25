@@ -53,7 +53,7 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool) (
 	// Update the data on the different node
 	for i := range controller.Data.CollectiveNodes {
 		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == dataVolume.ReplicaNodeGroup {
-			// TODO: API - Send the data to the leader for that replica group
+			// TODO: API - Send the data to the leader for that replica group - DataUpdate rpc
 			log.Println(controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress)
 			// return the boolean from this call
 			return false, nil
@@ -73,7 +73,7 @@ func retrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].DataKey == *key {
 			log.Println(controller.Data.DataLocations[i].ReplicaNodeGroup)
-			// TODO: API - Go retrieve the data and then return it here
+			// TODO: API - Go retrieve the data and then return it here - GetData rpc
 		}
 	}
 

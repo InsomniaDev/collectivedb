@@ -1,6 +1,9 @@
 // https://developers.google.com/protocol-buffers/docs/proto3#nested
 // https://developers.google.com/protocol-buffers/docs/overview
 
+// Setup the api
+// https://github.com/grpc/grpc-go/blob/master/examples/route_guide/server/server.go
+
 /*
 *
 * protoc --go_out=. --go_opt=paths=source_relative \
@@ -14,6 +17,48 @@ syntax = "proto3";
 package main;
 
 option go_package = "./collective";
+
+// Interface exported by the server.
+service RouteGuide {
+
+  // ReplicaUpdate
+  // 
+  // Receives a stream of updates, with each item will return a boolean on if the update was successful
+  rpc ReplicaUpdate(stream DataUpdates) returns (stream Updated) {}
+
+  // SyncDataRequest
+  // 
+  // Will send a request to a node to sync all data back to the newly joined node
+  rpc SyncDataRequest(SyncIp) returns (stream Data) {}
+
+  // DictionaryUpdate
+  // 
+  // Will send a stream of data entries that requie an update, will respond with a boolean for each entry sent
+  rpc DictionaryUpdate(stream DataUpdates) returns (stream Updated) {}
+
+  // DataUpdate
+  // 
+  // Will insert the updated data into the node, will return a boolean for each data entry
+  rpc DataUpdate(stream Data) returns (stream Updated) {}
+
+  // ReplicaDataUpdate
+  // 
+  // Will insert the updated data into the node, will return a boolean for each data entry
+  rpc ReplicaDataUpdate(stream Data) returns (stream Updated) {}
+
+  // GetData
+  // 
+  // Will attempt to get the data from the provided location
+  rpc GetData(Data) returns (Data) {}
+
+
+  // DeleteData
+  // 
+  // Will attempt to delete the data from the provided location, will return with a boolean for success status
+  rpc DeleteData(Data) returns (Updated) {}
+
+}
+
 
 message DataUpdates {
     message CollectiveDataUpdate {
@@ -44,4 +89,12 @@ message Data {
     string key = 1;
     string database = 2;
     bytes data = 3;
+}
+
+message Updated {
+    bool updatedSuccessfully = 1;
+}
+
+message SyncIp {
+    string ipAddress = 1;
 }
