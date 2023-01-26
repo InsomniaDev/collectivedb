@@ -21,14 +21,6 @@ var (
 
 // Setup the api
 // https://github.com/grpc/grpc-go/blob/master/examples/route_guide/server/server.go
-type server struct {
-	pb.UnimplementedRouteGuideServer
-}
-
-func newServer() *server {
-	s := &server{}
-	return s
-}
 
 func main() {
 	flag.Parse()
@@ -52,7 +44,7 @@ func main() {
 		opts = []grpc.ServerOption{grpc.Creds(creds)}
 	}
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterRouteGuideServer(grpcServer, newServer())
+	pb.RegisterRouteGuideServer(grpcServer, pb.NewGrpcServer())
 	grpcServer.Serve(lis)
 
 	// Retrieve the depth that the hash function should extend to

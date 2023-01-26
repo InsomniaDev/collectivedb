@@ -4,7 +4,7 @@
 // - protoc             v3.21.12
 // source: api/api.proto
 
-package collective
+package api
 
 import (
 	context "context"

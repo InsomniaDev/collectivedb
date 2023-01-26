@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package main;
 
-option go_package = "./collective";
+option go_package = "./api";
 
 // Interface exported by the server.
 service RouteGuide {
@@ -61,28 +61,38 @@ service RouteGuide {
 
 
 message DataUpdates {
-    message CollectiveDataUpdate {
-        bool update = 1;
-        int32 updateType = 2;
-        message Data {
-            int32 replicaNodeGroup = 1;
-            string dataKey = 2;
-            string database = 3;
-            repeated string replicatedNodeIds = 4;
-        }
-    }
-    message CollectiveReplicaUpdate {
-        bool update = 1;
-        int32 updateType = 2;
-        message UpdateReplica {
-	        int32 replicaNodeGroup = 1;
-	        bool fullGroup = 2;
-	        message replicaNodes {
-                string rodeId = 1;
-                string ipAddress = 2;
-            }
-        }
-    }
+    CollectiveDataUpdate CollectiveUpdate = 1;
+    CollectiveReplicaUpdate ReplicaUpdate = 2;
+}
+
+message CollectiveDataUpdate {
+    bool update = 1;
+    int32 updateType = 2;
+    CollectiveData Data = 3;
+}
+
+message CollectiveData {
+    int32 replicaNodeGroup = 1;
+    string dataKey = 2;
+    string database = 3;
+    repeated string replicatedNodeIds = 4;
+}
+
+message CollectiveReplicaUpdate {
+    bool update = 1;
+    int32 updateType = 2;
+    UpdateReplica updateReplica = 3;
+}
+
+message UpdateReplica {
+    int32 replicaNodeGroup = 1;
+    bool fullGroup = 2;
+    ReplicaNodes replicaNodes = 3;
+}
+
+message ReplicaNodes {
+    string rodeId = 1;
+    string ipAddress = 2;
 }
 
 message Data {
