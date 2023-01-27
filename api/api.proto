@@ -87,11 +87,11 @@ message CollectiveReplicaUpdate {
 message UpdateReplica {
     int32 replicaNodeGroup = 1;
     bool fullGroup = 2;
-    ReplicaNodes replicaNodes = 3;
+    repeated ReplicaNodes replicaNodes = 3;
 }
 
 message ReplicaNodes {
-    string rodeId = 1;
+    string nodeId = 1;
     string ipAddress = 2;
 }
 

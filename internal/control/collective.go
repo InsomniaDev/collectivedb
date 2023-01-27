@@ -62,7 +62,7 @@ func addToDataDictionary(dataToInsert Data) (updateType int) {
 // collectiveUpdate
 //
 // This will go through and update the collective memory, not touching the actual data
-func collectiveUpdate(update DataUpdate) {
+func collectiveUpdate(update *DataUpdate) {
 	collectiveMemoryMutex.Lock()
 
 	// If this is a data update

@@ -66,7 +66,7 @@ func NodeInfo() *Controller {
 // CollectiveUpdate
 //
 //	Will update this node with the incoming collective information from the other nodes
-func CollectiveUpdate(update DataUpdate) {
+func CollectiveUpdate(update *DataUpdate) {
 	// Update this node with the incoming information
 	// Send the data to the first url in the next replica group
 	// Send the new data to all replicas in this replica group
@@ -112,7 +112,7 @@ func ReplicateRequest() {
 //
 //	Will update this node with the data coming from another replica related to collective data
 //	This update call will not attempt to continue distributing the update
-func ReplicaUpdate(update DataUpdate) {
+func ReplicaUpdate(update *DataUpdate) {
 
 	// Update the collective with the new information
 	collectiveUpdate(update)

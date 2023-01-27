@@ -2,7 +2,6 @@ package api
 
 import (
 	"io"
-	"log"
 	"sync"
 
 	"github.com/insomniadev/collective-db/internal/control"
@@ -33,14 +32,9 @@ func (s *grpcServer) ReplicaUpdate(stream RouteGuide_ReplicaUpdateServer) error 
 			return err
 		}
 
+		// Lock the dictionary so that an update can occur here
 		s.dictionary_mu.Lock()
-
-		log.Println()
-
-		// TODO: Update the dictionary update here
-
-		control.ReplicaUpdate()
-
+		control.ReplicaUpdate(convertDataUpdatesToControlDataUpdate(in))
 		s.dictionary_mu.Unlock()
 
 		if err := stream.Send(&Updated{
