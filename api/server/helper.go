@@ -1,8 +1,11 @@
-package api
+package server
 
-import "github.com/insomniadev/collective-db/internal/control"
+import (
+	api "github.com/insomniadev/collective-db/api"
+	"github.com/insomniadev/collective-db/internal/control"
+)
 
-func convertDataUpdatesToControlDataUpdate(incomingData *DataUpdates) (convertedData *control.DataUpdate) {
+func convertDataUpdatesToControlDataUpdate(incomingData *api.DataUpdates) (convertedData *control.DataUpdate) {
 	replicaNodes := []control.Node{}
 	for i := range incomingData.ReplicaUpdate.UpdateReplica.ReplicaNodes {
 		replicaNodes = append(replicaNodes, control.Node{

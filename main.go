@@ -7,6 +7,7 @@ import (
 	"net"
 
 	pb "github.com/insomniadev/collective-db/api"
+	server "github.com/insomniadev/collective-db/api/server"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -44,7 +45,7 @@ func main() {
 		opts = []grpc.ServerOption{grpc.Creds(creds)}
 	}
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterRouteGuideServer(grpcServer, pb.NewGrpcServer())
+	pb.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
 	grpcServer.Serve(lis)
 
 	// Retrieve the depth that the hash function should extend to
