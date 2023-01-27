@@ -103,6 +103,7 @@ message Data {
 
 message Updated {
     bool updatedSuccessfully = 1;
+    string updatedKey = 2;
 }
 
 message SyncIp {

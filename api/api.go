@@ -61,7 +61,24 @@ func (s *grpcServer) DictionaryUpdate(stream RouteGuide_DictionaryUpdateServer) 
 // DataUpdate
 // Will insert the updated data into the node, will return a boolean for each data entry
 func (s *grpcServer) DataUpdate(stream RouteGuide_DataUpdateServer) error {
-	return nil
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		updated, updatedKey := control.ReplicaStoreData(in.Key, in.Database, in.Data)
+
+		if err := stream.Send(&Updated{
+			UpdatedSuccessfully: updated,
+			UpdatedKey:          *updatedKey,
+		}); err != nil {
+			return err
+		}
+	}
 }
 
 // ReplicaDataUpdate
@@ -74,11 +91,28 @@ func (s *grpcServer) ReplicaDataUpdate(stream RouteGuide_ReplicaDataUpdateServer
 // GetData
 // Will attempt to get the data from the provided location
 func (s *grpcServer) GetData(ctx context.Context, data *Data) (*Data, error) {
-	return nil, nil
+	exists, discoveredData := control.RetrieveData(&data.Key, &data.Database)
+	if exists {
+		return &Data{
+			Key:      data.Key,
+			Database: data.Database,
+			Data:     *discoveredData,
+		}, nil
+	} else {
+		return &Data{
+			Key:      data.Key,
+			Database: data.Database,
+			Data:     nil,
+		}, nil
+	}
 }
 
 // DeleteData
 // Will attempt to delete the data from the provided location, will return with a boolean for success status
 func (s *grpcServer) DeleteData(ctx context.Context, data *Data) (*Updated, error) {
-	return nil, nil
+	deleted, err := control.DeleteData(&data.Key, &data.Database)
+	return &Updated{
+		UpdatedSuccessfully: deleted,
+		UpdatedKey:          data.Key,
+	}, err
 }

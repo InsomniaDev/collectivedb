@@ -122,8 +122,8 @@ func ReplicaUpdate(update *DataUpdate) {
 // ReplicaStoreData
 //
 //	Will store the data provided from another replica and not update DataDictionary or attempt to replicate
-func ReplicaStoreData(key, bucket string, data []byte) {
-	storeData(&key, &bucket, &data, true)
+func ReplicaStoreData(key, bucket string, data []byte) (bool, *string) {
+	return storeData(&key, &bucket, &data, true)
 }
 
 // storeData
