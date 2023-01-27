@@ -146,7 +146,3 @@ func RetrieveData(key, bucket *string) (bool, *[]byte) {
 func DeleteData(key, bucket *string) (bool, error) {
 	return deleteDataFromDatabase(key, bucket)
 }
-
-// var mu sync.Mutex
-// mu.Lock()
-// defer mu.Unlock()

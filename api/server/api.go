@@ -5,8 +5,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/insomniadev/collective-db/internal/control"
 	api "github.com/insomniadev/collective-db/api"
+	"github.com/insomniadev/collective-db/internal/control"
 )
 
 // Server type for working with the gRPC server
@@ -50,13 +50,33 @@ func (s *grpcServer) ReplicaUpdate(stream api.RouteGuide_ReplicaUpdateServer) er
 // SyncDataRequest
 // Will send a request to the server to pull in all of the data to the newly joined node
 func (s *grpcServer) SyncDataRequest(syncIpAddress *api.SyncIp, stream api.RouteGuide_SyncDataRequestServer) error {
+	// TODO: Need to add in this functionality
 	return nil
 }
 
 // DictionaryUpdate
 // Will send a stream of data entries that requie an update, will respond with a boolean for each entry sent
 func (s *grpcServer) DictionaryUpdate(stream api.RouteGuide_DictionaryUpdateServer) error {
-	return nil
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		// Lock the dictionary so that an update can occur here
+		s.dictionary_mu.Lock()
+		control.CollectiveUpdate(convertDataUpdatesToControlDataUpdate(in))
+		s.dictionary_mu.Unlock()
+
+		if err := stream.Send(&api.Updated{
+			UpdatedSuccessfully: true,
+		}); err != nil {
+			return err
+		}
+	}
 }
 
 // DataUpdate
@@ -85,7 +105,24 @@ func (s *grpcServer) DataUpdate(stream api.RouteGuide_DataUpdateServer) error {
 // ReplicaDataUpdate
 // Will insert the updated data into the node, will return a boolean for each data entry
 func (s *grpcServer) ReplicaDataUpdate(stream api.RouteGuide_ReplicaDataUpdateServer) error {
-	return nil
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		stored, key := control.ReplicaStoreData(in.Key, in.Database, in.Data)
+
+		if err := stream.Send(&api.Updated{
+			UpdatedSuccessfully: stored,
+			UpdatedKey:          *key,
+		}); err != nil {
+			return err
+		}
+	}
 }
 
 // (ctx context.Context, point *pb.Point) (*pb.Feature, error) {
