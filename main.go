@@ -8,6 +8,7 @@ import (
 
 	pb "github.com/insomniadev/collective-db/api"
 	server "github.com/insomniadev/collective-db/api/server"
+	"github.com/insomniadev/collective-db/resources"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -33,10 +34,10 @@ func main() {
 	var opts []grpc.ServerOption
 	if *tls {
 		if *certFile == "" {
-			*certFile = "x509/server_cert.pem"
+			*certFile = resources.Path("x509/server_cert.pem")
 		}
 		if *keyFile == "" {
-			*keyFile = "x509/server_key.pem"
+			*keyFile = resources.Path("x509/server_key.pem")
 		}
 		creds, err := credentials.NewServerTLSFromFile(*certFile, *keyFile)
 		if err != nil {
