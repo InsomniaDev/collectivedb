@@ -10,8 +10,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
+	"github.com/insomniadev/collective-db/api/client"
+	"github.com/insomniadev/collective-db/api/proto"
 )
 
 // createUuid
@@ -207,8 +210,27 @@ func syncData() (err error) {
 	// Check if there are more than one replica nodes in this group, since in the previous call we set the node in the group
 	// Check that the first member of the group is not this node, if it is then there is no point requesting data
 	if len(controller.ReplicaNodes) > 1 && controller.ReplicaNodes[0].NodeId != controller.NodeId {
-		// TODO: API - Send a request for all of the data in the replica group. - ReplicaUpdate rpc
-		log.Println(controller.ReplicaNodes[0].IpAddress)
+
+		// Make a wait group and a channel for the returned data
+		dataToStore := make(chan *proto.Data)
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func(store chan *proto.Data) {
+			defer wg.Done()
+			for {
+				data := <-store
+				if data != nil {
+					// Store data in the database and do not attempt to distribute
+					go storeDataInDatabase(&data.Key, &data.Database, &data.Data, true)
+				} else {
+					return
+				}
+			}
+
+		}(dataToStore)
+
+		client.SyncDataRequest(&controller.ReplicaNodes[0].IpAddress, dataToStore)
 	}
 	return nil
 }

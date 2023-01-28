@@ -6,19 +6,19 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/insomniadev/collective-db/api"
-	server "github.com/insomniadev/collective-db/api/server"
+	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/api/server"
 	"github.com/insomniadev/collective-db/resources"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 var (
-	tls        = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-	certFile   = flag.String("cert_file", "", "The TLS cert file")
-	keyFile    = flag.String("key_file", "", "The TLS key file")
-	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
-	port       = flag.Int("port", 50051, "The server port")
+	tls      = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
+	certFile = flag.String("cert_file", "", "The TLS cert file")
+	keyFile  = flag.String("key_file", "", "The TLS key file")
+	port     = flag.Int("port", 9090, "The port for data insertion; defaults 9090")
+	nodePort = flag.Int("nodePort", 9091, "The port for collective communication; defaults 9091")
 )
 
 // Setup the api
@@ -46,20 +46,6 @@ func main() {
 		opts = []grpc.ServerOption{grpc.Creds(creds)}
 	}
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
+	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
 	grpcServer.Serve(lis)
-
-	// Retrieve the depth that the hash function should extend to
-	// depth := os.Getenv("DEPTH")
-	// num, err := strconv.Atoi(depth)
-	// if err != nil {
-	// 	// Non numeric environment variable input, setting to 1
-	// 	fmt.Println("Depth incorrectly input, setting to 1")
-	// 	num = 1
-	// }
-
-	// fmt.Println(database.FNV32a("test"))
-
-	// db := database.Init(num)
-	// fmt.Println(db.TotalDepth)
 }

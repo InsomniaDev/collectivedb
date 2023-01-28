@@ -8,7 +8,7 @@
 *
 * protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-    api/api.proto
+    api/proto/api.proto
 *
 **/
 
@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package main;
 
-option go_package = "./api";
+option go_package = "./proto";
 
 // Interface exported by the server.
 service RouteGuide {
@@ -99,6 +99,7 @@ message Data {
     string key = 1;
     string database = 2;
     bytes data = 3;
+    int32 replicaNodeGroup = 4;
 }
 
 message Updated {
