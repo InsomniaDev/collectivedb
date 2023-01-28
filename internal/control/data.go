@@ -62,6 +62,24 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool) (
 	return false, nil
 }
 
+// retrieveAllReplicaData
+// Will return with all of the replicated data
+func retrieveAllReplicaData(inputData chan<- *StoredData) {
+	for i := range controller.Data.DataLocations {
+		if controller.Data.DataLocations[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
+			if exists, data := retrieveDataFromDatabase(&controller.Data.DataLocations[i].DataKey, &controller.Data.DataLocations[i].Database); exists {
+				inputData <- &StoredData{
+					ReplicaNodeGroup: controller.ReplicaNodeGroup,
+					DataKey:          controller.Data.DataLocations[i].DataKey,
+					Database:         controller.Data.DataLocations[i].Database,
+					Data:             *data,
+				}
+			}
+		}
+	}
+	inputData <- nil
+}
+
 // retrieveDataFromDatabase
 func retrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 	if exists, value := database.Get(key, bucket); exists {

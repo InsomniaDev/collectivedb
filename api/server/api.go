@@ -49,9 +49,40 @@ func (s *grpcServer) ReplicaUpdate(stream api.RouteGuide_ReplicaUpdateServer) er
 
 // SyncDataRequest
 // Will send a request to the server to pull in all of the data to the newly joined node
-func (s *grpcServer) SyncDataRequest(syncIpAddress *api.SyncIp, stream api.RouteGuide_SyncDataRequestServer) error {
-	// TODO: Need to add in this functionality
-	return nil
+func (s *grpcServer) SyncDataRequest(syncIpAddress *api.SyncIp, stream api.RouteGuide_SyncDataRequestServer) (err error) {
+	// Make a channel that the process can yield the discovered data through
+	storedData := make(chan *control.StoredData)
+
+	// Setup a process to wait for the returned data
+	var wg sync.WaitGroup
+
+	// Go through and return the data as it is discovered
+	wg.Add(1)
+	go func(chan *control.StoredData) {
+		data := <-storedData
+		if data != nil {
+			if err = stream.Send(&api.Data{
+				Key:      data.DataKey,
+				Database: data.Database,
+				Data:     data.Data,
+			}); err != nil {
+				// Stop processing since we hit an error
+				defer wg.Done()
+				return
+			}
+		} else {
+			// We are done processing
+			defer wg.Done()
+			return
+		}
+	}(storedData)
+
+	// Request the data to be returned
+	control.ReplicaSyncRequest(storedData)
+
+	// Wait until all stream data has been sent
+	wg.Wait()
+	return err
 }
 
 // DictionaryUpdate

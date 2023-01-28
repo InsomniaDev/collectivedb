@@ -1,6 +1,8 @@
 package control
 
-import "sync"
+import (
+	"sync"
+)
 
 // Main Controller struct
 type Controller struct {
@@ -42,6 +44,14 @@ type Data struct {
 	DataKey           string   `json:"dataKey"`
 	Database          string   `json:"database"`
 	ReplicatedNodeIds []string `json:"replicatedNodes"`
+}
+
+// Data struct
+type StoredData struct {
+	ReplicaNodeGroup int    `json:"replicaNodeGroup"`
+	DataKey          string `json:"dataKey"`
+	Database         string `json:"database"`
+	Data             []byte `json:"data"`
 }
 
 var (

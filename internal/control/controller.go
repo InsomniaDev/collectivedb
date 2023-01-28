@@ -101,11 +101,11 @@ func CollectiveUpdate(update *DataUpdate) {
 	}
 }
 
-// ReplicateRequest
+// ReplicaSyncRequest
 //
-//	Node requesting to join this replica group
-func ReplicateRequest() {
-	// Respond with success or failure
+//	Node that became part of this replica group requires all of the data
+func ReplicaSyncRequest(storedData chan<- *StoredData) {
+	retrieveAllReplicaData(storedData)
 }
 
 // ReplicaUpdate

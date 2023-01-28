@@ -3,6 +3,7 @@ package control
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func Test_storeDataInDatabase(t *testing.T) {
@@ -173,6 +174,62 @@ func Test_deleteDataFromDatabase(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("deleteDataFromDatabase() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_retrieveAllReplicaData(t *testing.T) {
+	key := "test"
+	bucket := "test"
+	data := []byte("hello")
+	storeDataInDatabase(&key, &bucket, &data, false)
+	count := 0
+
+	controller.Data.DataLocations = []Data{
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          "test",
+			Database:         "test",
+			ReplicatedNodeIds: []string{
+				"1", "2", "3", "5",
+			},
+		},
+	}
+
+	controller.ReplicaNodeGroup = 1
+
+	type args struct {
+		inputData chan *StoredData
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Test successfully sending data",
+			args: args{
+				inputData: make(chan *StoredData),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			go func(inputData <-chan *StoredData) {
+				for {
+					data := <-inputData
+					if data != nil {
+						count++
+					} else {
+						return
+					}
+				}
+			}(tt.args.inputData)
+
+			retrieveAllReplicaData(tt.args.inputData)
+			time.Sleep(10 * time.Millisecond)
+			if count != 1 {
+				t.Errorf("Did not capture all data")
 			}
 		})
 	}
