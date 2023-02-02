@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.12
-// source: api/api.proto
+// source: api/proto/api.proto
 
 package proto
 
@@ -49,7 +49,7 @@ type RouteGuideClient interface {
 	// DeleteData
 	//
 	// Will attempt to delete the data from the provided location, will return with a boolean for success status
-	DeleteData(ctx context.Context, in *Data, opts ...grpc.CallOption) (*Updated, error)
+	DeleteData(ctx context.Context, in *DataArray, opts ...grpc.CallOption) (*Updated, error)
 }
 
 type routeGuideClient struct {
@@ -225,7 +225,7 @@ func (c *routeGuideClient) GetData(ctx context.Context, in *Data, opts ...grpc.C
 	return out, nil
 }
 
-func (c *routeGuideClient) DeleteData(ctx context.Context, in *Data, opts ...grpc.CallOption) (*Updated, error) {
+func (c *routeGuideClient) DeleteData(ctx context.Context, in *DataArray, opts ...grpc.CallOption) (*Updated, error) {
 	out := new(Updated)
 	err := c.cc.Invoke(ctx, "/main.RouteGuide/DeleteData", in, out, opts...)
 	if err != nil {
@@ -265,7 +265,7 @@ type RouteGuideServer interface {
 	// DeleteData
 	//
 	// Will attempt to delete the data from the provided location, will return with a boolean for success status
-	DeleteData(context.Context, *Data) (*Updated, error)
+	DeleteData(context.Context, *DataArray) (*Updated, error)
 	mustEmbedUnimplementedRouteGuideServer()
 }
 
@@ -291,7 +291,7 @@ func (UnimplementedRouteGuideServer) ReplicaDataUpdate(RouteGuide_ReplicaDataUpd
 func (UnimplementedRouteGuideServer) GetData(context.Context, *Data) (*Data, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetData not implemented")
 }
-func (UnimplementedRouteGuideServer) DeleteData(context.Context, *Data) (*Updated, error) {
+func (UnimplementedRouteGuideServer) DeleteData(context.Context, *DataArray) (*Updated, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteData not implemented")
 }
 func (UnimplementedRouteGuideServer) mustEmbedUnimplementedRouteGuideServer() {}
@@ -451,7 +451,7 @@ func _RouteGuide_GetData_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 func _RouteGuide_DeleteData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Data)
+	in := new(DataArray)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -463,7 +463,7 @@ func _RouteGuide_DeleteData_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: "/main.RouteGuide/DeleteData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RouteGuideServer).DeleteData(ctx, req.(*Data))
+		return srv.(RouteGuideServer).DeleteData(ctx, req.(*DataArray))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -515,5 +515,5 @@ var RouteGuide_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "api/api.proto",
+	Metadata: "api/proto/api.proto",
 }

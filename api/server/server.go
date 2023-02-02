@@ -2,6 +2,7 @@ package server
 
 import (
 	context "context"
+	"fmt"
 	"io"
 	"sync"
 
@@ -182,10 +183,20 @@ func (s *grpcServer) GetData(ctx context.Context, data *proto.Data) (*proto.Data
 
 // DeleteData
 // Will attempt to delete the data from the provided location, will return with a boolean for success status
-func (s *grpcServer) DeleteData(ctx context.Context, data *proto.Data) (*proto.Updated, error) {
-	deleted, err := control.DeleteData(&data.Key, &data.Database)
+func (s *grpcServer) DeleteData(ctx context.Context, data *proto.DataArray) (*proto.Updated, error) {
+	keys := ""
+	for i := range data.Data {
+		x := data.Data[i]
+		if deleted, err := control.DeleteData(&x.Key, &x.Database); !deleted || err != nil {
+			return &proto.Updated{
+				UpdatedSuccessfully: deleted,
+				UpdatedKey:          x.Key,
+			}, err
+		}
+		keys = fmt.Sprint(keys, ",", x.Key)
+	}
 	return &proto.Updated{
-		UpdatedSuccessfully: deleted,
-		UpdatedKey:          data.Key,
-	}, err
+		UpdatedSuccessfully: true,
+		UpdatedKey:          keys,
+	}, nil
 }

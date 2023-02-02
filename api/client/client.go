@@ -71,6 +71,29 @@ func SyncDataRequest(ipAddress *string, data chan<- *proto.Data) error {
 	return nil
 }
 
+// DeleteData
+// Will take an array of data fields and have them deleted from the provided ipaddress
+func DeleteData(ipAddress *string, data *proto.DataArray) error {
+		// Setup the client
+	connOpts := getConnectionOptions(ipAddress)
+	conn, err := grpc.Dial(*ipAddress, *connOpts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := proto.NewRouteGuideClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	deleted, err := client.DeleteData(ctx, data)
+	if !deleted.UpdatedSuccessfully || err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
 // func DataUpdate(ipAddress *string, dataUpdate control.DataUpdate) error {
 
 // 	connOpts := getConnectionOptions(ipAddress)

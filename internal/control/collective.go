@@ -17,6 +17,21 @@ import (
 	"github.com/insomniadev/collective-db/api/proto"
 )
 
+var (
+	replicaCount int
+	err          error
+)
+
+func init() {
+	if replicaCountString := os.Getenv("COLLECTIVE_REPLICA_COUNT"); replicaCountString != "" {
+		if replicaCount, err = strconv.Atoi(os.Getenv("COLLECTIVE_REPLICA_COUNT")); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		replicaCount = 1
+	}
+}
+
 // createUuid
 //
 //	Will generated a unique uuid for the node upon node creation
@@ -257,21 +272,26 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 	for i := range controller.Data.DataLocations {
 		// Check to see if the replica group number matches the one we are looking for
 		if controller.Data.DataLocations[i].ReplicaNodeGroup == replicationGroup {
-			// Cycle through and see if the data has a node id that doesn't match with the replica nodes
-			for j := range controller.Data.DataLocations[i].ReplicatedNodeIds {
-				// Set boolean if it matches the current group
-				matchesCurrentGroup := false
+			// If length of replicatedNodeIds is greater than the replica count
+			if len(controller.Data.DataLocations[i].ReplicatedNodeIds) > replicaCount {
+				// Cycle through and see if the data has a node id that doesn't match with the replica nodes
+				for j := range controller.Data.DataLocations[i].ReplicatedNodeIds {
+					// Set boolean if it matches the current group
+					matchesCurrentGroup := false
 
-				// Go through nodes for the replica group and compare
-				for rg := range replicatedNodesForGroup {
-					if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == replicatedNodesForGroup[rg].NodeId {
-						matchesCurrentGroup = true
+					// Go through nodes for the replica group and compare
+					for rg := range replicatedNodesForGroup {
+						if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == replicatedNodesForGroup[rg].NodeId {
+							matchesCurrentGroup = true
+						}
 					}
-				}
 
-				// If the node wasn't discovered, then set it as the discovered node
-				if !matchesCurrentGroup {
-					nodeRemoved.NodeId = controller.Data.DataLocations[i].ReplicatedNodeIds[j]
+					// If the node wasn't discovered, then set it as the discovered node
+					if !matchesCurrentGroup {
+						nodeRemoved.NodeId = controller.Data.DataLocations[i].ReplicatedNodeIds[j]
+						found = true
+						break
+					}
 				}
 			}
 		}
@@ -307,7 +327,17 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 	}
 
 	var callToRemove = func(data []Data) {
-		// TODO: API Call to remove all of these data entries to the IP of the remove node - DictionaryUpdate rpc
+		// Remove all of these data entries to the IP of the remove node 
+		protoData := proto.DataArray{}
+		for i := range data {
+			protoData.Data = append(protoData.Data, &proto.Data{
+				Key: data[i].DataKey,
+				Database: data[i].Database,
+			})
+		}
+		client.DeleteData(&nodeRemoved.IpAddress, &protoData)
+
+		// TODO: API - dictionary update to remove from dictionary groups
 	}
 
 	// Go through and remove all of the data that this node has for this replica group
@@ -336,14 +366,6 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 //	Will determine the replicas for this new node
 func determineReplicas() (err error) {
 
-	replicaCount := 1
-	// Get the environment variable on the wanted replica count
-	if rc := os.Getenv("COLLECTIVE_REPLICA_COUNT"); rc != "" {
-		// Convert env variable to number
-		if replicaCount, err = strconv.Atoi(rc); err != nil {
-			return err
-		}
-	}
 	// Scale OUT Algorithm
 	//
 	// 	OPEN replica group?
