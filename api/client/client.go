@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -74,7 +75,7 @@ func SyncDataRequest(ipAddress *string, data chan<- *proto.Data) error {
 // DeleteData
 // Will take an array of data fields and have them deleted from the provided ipaddress
 func DeleteData(ipAddress *string, data *proto.DataArray) error {
-		// Setup the client
+	// Setup the client
 	connOpts := getConnectionOptions(ipAddress)
 	conn, err := grpc.Dial(*ipAddress, *connOpts...)
 	if err != nil {
@@ -94,23 +95,39 @@ func DeleteData(ipAddress *string, data *proto.DataArray) error {
 	}
 }
 
-// func DataUpdate(ipAddress *string, dataUpdate control.DataUpdate) error {
+// DictionaryUpdate
+// Will update the dictionary with the provided dataset
+func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) error {
+	// Setup the client
+	connOpts := getConnectionOptions(ipAddress)
+	conn, err := grpc.Dial(*ipAddress, *connOpts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := proto.NewRouteGuideClient(conn)
 
-// 	connOpts := getConnectionOptions(ipAddress)
-// 	conn, err := grpc.Dial(*ipAddress, *connOpts...)
-// 	if err != nil {
-// 		log.Fatalf("fail to dial: %v", err)
-// 	}
-// 	defer conn.Close()
-// 	client := api.NewRouteGuideClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	stream, err := client.DictionaryUpdate(ctx)
+	
+	if err != nil {
+		log.Fatalf("stream.RecordRoute failed: %v", err)
+	}
 
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-// 	stream, err := client.DataUpdate(ctx, connOpts)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	stream.Send(&api.Data{
+	for {
+		data := <-dataChan
+		if data == nil {
+			if err := stream.CloseSend(); err != nil {
+				return err
+			}
+			break
+		}
 
-// 	})
-// }
+		if err := stream.Send(data); err != nil {
+			return fmt.Errorf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+		}
+	}
+
+	return nil
+}

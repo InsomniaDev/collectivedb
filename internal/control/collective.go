@@ -327,17 +327,55 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 	}
 
 	var callToRemove = func(data []Data) {
-		// Remove all of these data entries to the IP of the remove node 
+		// Remove all of these data entries to the IP of the remove node
 		protoData := proto.DataArray{}
 		for i := range data {
 			protoData.Data = append(protoData.Data, &proto.Data{
-				Key: data[i].DataKey,
+				Key:      data[i].DataKey,
 				Database: data[i].Database,
 			})
 		}
 		client.DeleteData(&nodeRemoved.IpAddress, &protoData)
 
-		// TODO: API - dictionary update to remove from dictionary groups
+		// Dictionary update to remove from dictionary groups
+		// Create the data update request object
+		var wg sync.WaitGroup
+		updateDictionary := make(chan *proto.DataUpdates)
+
+		// Call the dictionary function before going through all of the data elements
+		// send the update to the first node in the list
+		client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+
+		wg.Add(1)
+		go func(data []Data) {
+			defer wg.Done()
+			for i := range data {
+				for j := range controller.Data.DataLocations {
+					if controller.Data.DataLocations[j].DataKey == data[i].DataKey {
+						newListOfIps := []string{}
+						for k := range data[i].ReplicatedNodeIds {
+							if data[i].ReplicatedNodeIds[k] != nodeRemoved.NodeId {
+								newListOfIps = append(newListOfIps, data[i].ReplicatedNodeIds[k])
+							}
+						}
+						updateDictionary <- &proto.DataUpdates{
+							CollectiveUpdate: &proto.CollectiveDataUpdate{
+								Update:     true,
+								UpdateType: UPDATE,
+								Data: &proto.CollectiveData{
+									ReplicaNodeGroup:  int32(data[i].ReplicaNodeGroup),
+									DataKey:           data[i].DataKey,
+									Database:          data[i].Database,
+									ReplicatedNodeIds: newListOfIps,
+								},
+							},
+						}
+					}
+				}
+			}
+		}(data)
+
+		wg.Wait()
 	}
 
 	// Go through and remove all of the data that this node has for this replica group
