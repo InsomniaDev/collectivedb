@@ -373,6 +373,7 @@ func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
 					}
 				}
 			}
+			updateDictionary <- nil
 		}(data)
 
 		wg.Wait()
@@ -509,6 +510,7 @@ func distributeData(key, bucket *string, data *[]byte) error {
 	}
 
 	// TODO: API - send data update to ReplicaStoreData - ReplicaUpdate rpc
+	
 
 	// Add this node to the DataDictionary
 	updateType := addToDataDictionary(newData)
@@ -522,8 +524,28 @@ func distributeData(key, bucket *string, data *[]byte) error {
 		},
 	}
 	log.Println(updateData)
-	// log.Println(controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress)
-	// TODO: API - Fire off DataDictionary update process through the collective - DictionaryUpdate rpc
+
+	// Fire off DataDictionary update process through the collective - DictionaryUpdate rpc
+	// Create the data update request object
+	updateDictionary := make(chan *proto.DataUpdates)
+
+	// Call the dictionary function before passing the data into the channel
+	// send the update to the first node in the list
+	client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+
+	updateDictionary <- &proto.DataUpdates{
+		CollectiveUpdate: &proto.CollectiveDataUpdate{
+			Update:     true,
+			UpdateType: int32(updateType),
+			Data: &proto.CollectiveData{
+				ReplicaNodeGroup:  int32(newData.ReplicaNodeGroup),
+				DataKey:           newData.DataKey,
+				Database:          newData.Database,
+				ReplicatedNodeIds: newData.ReplicatedNodeIds,
+			},
+		},
+	}
+	updateDictionary <- nil
 
 	return nil
 }
