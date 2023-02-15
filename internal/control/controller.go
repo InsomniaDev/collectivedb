@@ -3,6 +3,9 @@ package control
 // Thoughts: for the node IP it could be <IP_ADDRESS>/node?<NODE_ID>
 import (
 	"log"
+
+	"github.com/insomniadev/collective-db/api/client"
+	"github.com/insomniadev/collective-db/api/proto"
 )
 
 // Pull from local database, if doesn't exist then
@@ -74,6 +77,38 @@ func CollectiveUpdate(update *DataUpdate) {
 	// If we get data here, then this is the leader of the replica group (or the first node in the array)
 	collectiveUpdate(update)
 
+	// Create an array of ReplicaNodes info
+	replicaNodes := []*proto.ReplicaNodes{}
+	for i := range update.ReplicaUpdate.UpdateReplica.ReplicaNodes {
+		replicaNodes = append(replicaNodes, &proto.ReplicaNodes{
+			NodeId:    update.ReplicaUpdate.UpdateReplica.ReplicaNodes[i].NodeId,
+			IpAddress: update.ReplicaUpdate.UpdateReplica.ReplicaNodes[i].IpAddress,
+		})
+	}
+
+	// Assemble the data to be sent
+	protoData := &proto.DataUpdates{
+		CollectiveUpdate: &proto.CollectiveDataUpdate{
+			Update:     update.DataUpdate.Update,
+			UpdateType: int32(update.DataUpdate.UpdateType),
+			Data: &proto.CollectiveData{
+				ReplicaNodeGroup:  int32(update.DataUpdate.UpdateData.ReplicaNodeGroup),
+				DataKey:           update.DataUpdate.UpdateData.DataKey,
+				Database:          update.DataUpdate.UpdateData.Database,
+				ReplicatedNodeIds: update.DataUpdate.UpdateData.ReplicatedNodeIds,
+			},
+		},
+		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
+			Update:     update.ReplicaUpdate.Update,
+			UpdateType: int32(update.ReplicaUpdate.UpdateType),
+			UpdateReplica: &proto.UpdateReplica{
+				ReplicaNodeGroup: int32(update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup),
+				FullGroup:        update.ReplicaUpdate.UpdateReplica.FullGroup,
+				ReplicaNodes:     replicaNodes,
+			},
+		},
+	}
+
 	// Send the data onward
 	// Update the replicas in this replica group
 	for i := range controller.ReplicaNodes {
@@ -82,7 +117,7 @@ func CollectiveUpdate(update *DataUpdate) {
 			// Send the data to the replica node
 
 			// TODO: API - Send the data to the api endpoint for the ReplicaUpdate function - ReplicaUpdate rpc
-			log.Println(controller.ReplicaNodes[i].IpAddress)
+			log.Println(controller.ReplicaNodes[i].IpAddress, protoData)
 		}
 	}
 
@@ -94,8 +129,13 @@ func CollectiveUpdate(update *DataUpdate) {
 			// 	Check that there is another element in the array
 			if len(controller.Data.CollectiveNodes) >= i+2 {
 
-				// TODO: API - Send the data to the next node - DictionaryUpdate rpc
-				log.Println(controller.Data.CollectiveNodes[i+1].ReplicaNodes[0].IpAddress)
+				// initialize first call
+				updateDictionary := make(chan *proto.DataUpdates)
+				client.DictionaryUpdate(&controller.Data.CollectiveNodes[i+1].ReplicaNodes[0].IpAddress, updateDictionary)
+
+				// Send the data into the dictionary update function
+				updateDictionary <- protoData
+				updateDictionary <- nil
 			}
 		}
 	}
