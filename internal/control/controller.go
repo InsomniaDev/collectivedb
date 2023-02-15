@@ -127,7 +127,7 @@ func CollectiveUpdate(update *DataUpdate) {
 		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
 			// Send to the next replica group in the list
 			// 	Check that there is another element in the array
-			if len(controller.Data.CollectiveNodes) >= i+2 {
+			if len(controller.Data.CollectiveNodes) >= i+2 && active {
 
 				// initialize first call
 				updateDictionary := make(chan *proto.DataUpdates)

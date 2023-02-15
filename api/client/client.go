@@ -110,7 +110,7 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	stream, err := client.DictionaryUpdate(ctx)
-	
+
 	if err != nil {
 		log.Fatalf("stream.RecordRoute failed: %v", err)
 	}
