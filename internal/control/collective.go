@@ -465,6 +465,7 @@ func determineReplicas() (err error) {
 //	Is responsible for alerting when termination is starting, and sending data to another replica group
 func terminateReplicas() (err error) {
 
+	// TODO: Need to build out this functionality
 	// Scale IN Algorithm
 	//
 	// 	FULL Group?
