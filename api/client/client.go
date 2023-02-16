@@ -131,3 +131,77 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 
 	return nil
 }
+
+// ReplicaUpdate
+// Will have a collective update to the attached replica through the replica update point
+func ReplicaUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) error {
+	// Setup the client
+	connOpts := getConnectionOptions(ipAddress)
+	conn, err := grpc.Dial(*ipAddress, *connOpts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := proto.NewRouteGuideClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	stream, err := client.ReplicaUpdate(ctx)
+
+	if err != nil {
+		log.Fatalf("stream.RecordRoute failed: %v", err)
+	}
+
+	for {
+		data := <-dataChan
+		if data == nil {
+			if err := stream.CloseSend(); err != nil {
+				return err
+			}
+			break
+		}
+
+		if err := stream.Send(data); err != nil {
+			return fmt.Errorf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+		}
+	}
+
+	return nil
+}
+
+// ReplicaDataUpdate
+// Will send the data to be stored on the connected replicas
+func ReplicaDataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
+	// Setup the client
+	connOpts := getConnectionOptions(ipAddress)
+	conn, err := grpc.Dial(*ipAddress, *connOpts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := proto.NewRouteGuideClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	stream, err := client.ReplicaDataUpdate(ctx)
+
+	if err != nil {
+		log.Fatalf("stream.RecordRoute failed: %v", err)
+	}
+
+	for {
+		data := <-dataChan
+		if data == nil {
+			if err := stream.CloseSend(); err != nil {
+				return err
+			}
+			break
+		}
+
+		if err := stream.Send(data); err != nil {
+			return fmt.Errorf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+		}
+	}
+
+	return nil
+}

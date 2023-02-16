@@ -517,22 +517,29 @@ func distributeData(key, bucket *string, data *[]byte) error {
 		ReplicatedNodeIds: controller.ReplicaNodeIds,
 	}
 
-	// TODO: API - send data update to ReplicaStoreData - ReplicaUpdate rpc
-
 	// Add this node to the DataDictionary
 	updateType := addToDataDictionary(newData)
 
-	// Always start with the first node so that data gets updated consequtively
-	updateData := DataUpdate{
-		DataUpdate: CollectiveDataUpdate{
-			Update:     true,
-			UpdateType: updateType,
-			UpdateData: newData,
-		},
-	}
-	log.Println(updateData)
-
 	if active {
+
+		// Create the data object to be sent
+		dataUpdate := &proto.Data{
+			Key:              *key,
+			Database:         *bucket,
+			Data:             *data,
+			ReplicaNodeGroup: int32(controller.ReplicaNodeGroup),
+		}
+
+		// Send to each replica attached to this replica node group
+		for i := range controller.ReplicaNodes {
+			if controller.ReplicaNodes[i].NodeId != controller.NodeId {
+				updateReplica := make(chan *proto.Data)
+				client.ReplicaDataUpdate(&controller.ReplicaNodes[i].IpAddress, updateReplica)
+				updateReplica <- dataUpdate
+				updateReplica <- nil
+			}
+		}
+
 		// Fire off DataDictionary update process through the collective - DictionaryUpdate rpc
 		// Create the data update request object
 		updateDictionary := make(chan *proto.DataUpdates)
