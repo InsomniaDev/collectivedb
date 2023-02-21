@@ -72,6 +72,30 @@ func SyncDataRequest(ipAddress *string, data chan<- *proto.Data) error {
 	return nil
 }
 
+// GetData
+// Will attempt to retrieve the data from the specified location, which should be the replication node group leader
+func GetData(ipAddress *string, data *proto.Data) (*proto.Data, error) {
+	// Setup the client
+	connOpts := getConnectionOptions(ipAddress)
+	conn, err := grpc.Dial(*ipAddress, *connOpts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := proto.NewRouteGuideClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Attempt to retrieve the data from the endpoint
+	returnedData, err := client.GetData(ctx, data)
+	if returnedData != nil || err != nil {
+		return nil, err
+	} else {
+		return returnedData, nil
+	}
+}
+
 // DeleteData
 // Will take an array of data fields and have them deleted from the provided ipaddress
 func DeleteData(ipAddress *string, data *proto.DataArray) error {

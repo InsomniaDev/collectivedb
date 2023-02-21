@@ -108,8 +108,22 @@ func retrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 	// Determine what node the data exists on
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].DataKey == *key {
-			log.Println(controller.Data.DataLocations[i].ReplicaNodeGroup)
-			// TODO: API - Go retrieve the data and then return it here - GetData rpc
+
+			// Go retrieve the data and then return it here - GetData rpc
+			for j := range controller.Data.CollectiveNodes {
+				if controller.Data.CollectiveNodes[j].ReplicaNodeGroup == controller.Data.DataLocations[i].ReplicaNodeGroup {
+
+					data, err := client.GetData(&controller.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, &proto.Data{
+						Key:              *key,
+						Database:         *bucket,
+						ReplicaNodeGroup: int32(controller.Data.DataLocations[i].ReplicaNodeGroup),
+					})
+					if err != nil {
+						return false, nil
+					}
+					return true, &data.Data
+				}
+			}
 		}
 	}
 
