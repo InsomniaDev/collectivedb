@@ -2,8 +2,6 @@ package control
 
 // Thoughts: for the node IP it could be <IP_ADDRESS>/node?<NODE_ID>
 import (
-	"log"
-
 	"github.com/insomniadev/collective-db/api/client"
 	"github.com/insomniadev/collective-db/api/proto"
 )
@@ -116,8 +114,14 @@ func CollectiveUpdate(update *DataUpdate) {
 		if controller.ReplicaNodes[i].NodeId != controller.NodeId {
 			// Send the data to the replica node
 
-			// TODO: API - Send the data to the api endpoint for the ReplicaUpdate function - ReplicaUpdate rpc
-			log.Println(controller.ReplicaNodes[i].IpAddress, protoData)
+			// Send the data to the api endpoint for the ReplicaUpdate function - ReplicaUpdate rpc
+			// initialize first call
+			updateDictionary := make(chan *proto.DataUpdates)
+			client.ReplicaUpdate(&controller.ReplicaNodes[i].IpAddress, updateDictionary)
+
+			// Send the data into the dictionary update function
+			updateDictionary <- protoData
+			updateDictionary <- nil
 		}
 	}
 
@@ -127,7 +131,10 @@ func CollectiveUpdate(update *DataUpdate) {
 		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
 			// Send to the next replica group in the list
 			// 	Check that there is another element in the array
-			if len(controller.Data.CollectiveNodes) >= i+2 && active {
+			//  Confirm that we aren't going to send to the replicanodegroup that started this request
+			if len(controller.Data.CollectiveNodes) >= i+2 && active &&
+				(controller.Data.CollectiveNodes[i].ReplicaNodeGroup != update.DataUpdate.UpdateData.ReplicaNodeGroup ||
+					controller.Data.CollectiveNodes[i].ReplicaNodeGroup != update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup) {
 
 				// initialize first call
 				updateDictionary := make(chan *proto.DataUpdates)
@@ -136,6 +143,9 @@ func CollectiveUpdate(update *DataUpdate) {
 				// Send the data into the dictionary update function
 				updateDictionary <- protoData
 				updateDictionary <- nil
+
+				// Break out of the loop and allow the next process to send the data, otherwise all data will always be sent from one location
+				break
 			}
 		}
 	}
