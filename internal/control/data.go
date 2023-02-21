@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/google/uuid"
+	"github.com/insomniadev/collective-db/api/client"
+	"github.com/insomniadev/collective-db/api/proto"
 	database "github.com/insomniadev/collective-db/internal/database"
 )
 
@@ -53,10 +55,26 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool) (
 	// Update the data on the different node
 	for i := range controller.Data.CollectiveNodes {
 		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == dataVolume.ReplicaNodeGroup {
-			// TODO: API - Send the data to the leader for that replica group - DataUpdate rpc
+			// Send the data to the leader for that replica group - DataUpdate rpc
 			log.Println(controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress)
+
+			protoData := make(chan *proto.Data)
+			err := client.ReplicaDataUpdate(&controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, protoData)
+
+			protoData <- &proto.Data{
+				Key:              *key,
+				Database:         *bucket,
+				Data:             *data,
+				ReplicaNodeGroup: int32(dataVolume.ReplicaNodeGroup),
+			}
+			protoData <- nil
+
 			// return the boolean from this call
-			return false, nil
+			if err != nil {
+				return false, nil
+			} else {
+				return true, key
+			}
 		}
 	}
 	return false, nil
