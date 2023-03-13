@@ -144,8 +144,19 @@ func deleteDataFromDatabase(key, bucket *string) (bool, error) {
 	// Determine what node the data exists on
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].DataKey == *key {
-			log.Println(controller.Data.DataLocations[i].ReplicaNodeGroup)
-			// TODO: API - Send delete command to the first node in the replica group, Wait for response of confirmation if that env variable is set
+
+			protoData := proto.DataArray{}
+			protoData.Data = append(protoData.Data, &proto.Data{
+				Key:              *key,
+				Database:         *bucket,
+				ReplicaNodeGroup: int32(controller.Data.DataLocations[i].ReplicaNodeGroup),
+			})
+
+			// Send delete command to the first node in the replica group that contains the data
+			if err := client.DeleteData(&controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, &protoData); err != nil {
+				return false, err
+			}
+			return true, nil
 		}
 	}
 
