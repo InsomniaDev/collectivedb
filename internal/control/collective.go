@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"regexp"
@@ -462,45 +463,64 @@ func determineReplicas() (err error) {
 
 // terminateReplicas
 //
-//	Is responsible for alerting when termination is starting, and sending data to another replica group
+// When this node shuts down, this function will ensure that there is no data loss and will offload data to other nodes if required
 func terminateReplicas() (err error) {
 
 	// TODO: Need to build out this functionality
-	// Scale IN Algorithm
-	//
-	// 	FULL Group?
-	// 		YES - Send data to randomized replica group
-	// 			  Add nodes in replica group to replica node list in data dictionary for that entry
-	// 			  Update Data Dictionary and CollectiveNodes
-	// 		NO - Determine the replica group data is being sent to already
-	// 			 Send more data to that group
-	// 			 Update Data Dictionary and CollectiveNodes
 
-	// replicaCount := 1
-	// // Get the environment variable on the wanted replica count
-	// if rc := os.Getenv("COLLECTIVE_REPLICA_COUNT"); rc != "" {
-	// 	// Convert env variable to number
-	// 	if replicaCount, err = strconv.Atoi(rc); err != nil {
-	// 		return err
-	// 	}
-	// }
+	// FIXME: In the future we want to have the data evenly spread across the currently active nodes rather than just one
+	// Generate random index to send all of the data to
+	randIndex := rand.Intn(len(controller.Data.CollectiveNodes))
 
-	// // Set the seed for the random number generator
-	// rand.Seed(time.Now().UnixNano())
+	// Insert the data into the intended node so that there is no data loss
+	disperseData := make(chan *proto.Data)
+	client.DataUpdate(&controller.Data.CollectiveNodes[randIndex].ReplicaNodes[0].IpAddress, disperseData)
 
-	// if len(controller.CollectiveNodes) < replicaCount {
-	// 	return errors.New("replica count exceeds node count")
-	// }
+	// Create the dictionary update request channel, have all data dictionary updates go through the first node
+	updateDictionary := make(chan *proto.DataUpdates)
+	client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
 
-	// // Randomly assign strings from the slice
-	// for i := 0; i < replicaCount; i++ {
-	// 	// Generate a random index
-	// 	randIndex := rand.Intn(len(controller.CollectiveNodes))
+	// Create channel to retrieve all of the stored data through the retrieveAllReplicaData function
+	replicaData := make(chan *StoredData)
+	retrieveAllReplicaData(replicaData)
+	for {
+		if storedData := <-replicaData; storedData != nil {
+			// TODO: need to create an override for this so that the data is stored on this node rather than updated
+			// Send the data to the new decided node
+			disperseData <- &proto.Data{
+				Key:              storedData.DataKey,
+				Database:         storedData.Database,
+				Data:             storedData.Data,
+				ReplicaNodeGroup: int32(storedData.ReplicaNodeGroup),
+			}
 
-	// 	// Print the string at the random index
-	// 	controller.ReplicaNodes = append(controller.ReplicaNodes, controller.CollectiveNodes[randIndex])
-	// }
-	// return nil
+			// TODO: Should we let the new node group update that it has this data? Or have it updated from here? If the node is shutting down, it might be easier to send from the new node
+			// Update the data dictionary with the new location for that data
+			dataDictionaryItem := retrieveFromDataDictionary(&storedData.DataKey)
+
+			// Add the new IP we sent the data to the list of node ids
+			newListOfNodeIds := dataDictionaryItem.ReplicatedNodeIds
+			newListOfNodeIds = append(newListOfNodeIds, controller.Data.CollectiveNodes[randIndex].ReplicaNodes[0].NodeId)
+
+			updateDictionary <- &proto.DataUpdates{
+				CollectiveUpdate: &proto.CollectiveDataUpdate{
+					Update:     true,
+					UpdateType: UPDATE,
+					Data: &proto.CollectiveData{
+						ReplicaNodeGroup:  int32(dataDictionaryItem.ReplicaNodeGroup),
+						DataKey:           dataDictionaryItem.DataKey,
+						Database:          dataDictionaryItem.Database,
+						ReplicatedNodeIds: newListOfNodeIds,
+					},
+				},
+			}
+
+		} else {
+			break
+		}
+	}
+
+	// TODO: Need to determine a way to notice a lost node and automatically trigger a data distribution
 
 	return nil
 }
