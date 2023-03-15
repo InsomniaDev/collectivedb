@@ -29,9 +29,10 @@ func convertDataUpdatesToControlDataUpdate(incomingData *proto.DataUpdates) (con
 			Update:     incomingData.ReplicaUpdate.Update,
 			UpdateType: int(incomingData.ReplicaUpdate.UpdateType),
 			UpdateReplica: control.ReplicaGroup{
-				ReplicaNodeGroup: int(incomingData.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup),
-				ReplicaNodes:     replicaNodes,
-				FullGroup:        incomingData.ReplicaUpdate.UpdateReplica.FullGroup,
+				ReplicaNodeGroup:   int(incomingData.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup),
+				ReplicaNodes:       replicaNodes,
+				FullGroup:          incomingData.ReplicaUpdate.UpdateReplica.FullGroup,
+				SecondaryNodeGroup: int(incomingData.ReplicaUpdate.UpdateReplica.SecondaryNodeGroup),
 			},
 		},
 	}

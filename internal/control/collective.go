@@ -238,7 +238,7 @@ func syncData() (err error) {
 				data := <-store
 				if data != nil {
 					// Store data in the database and do not attempt to distribute
-					go storeDataInDatabase(&data.Key, &data.Database, &data.Data, true)
+					go storeDataInDatabase(&data.Key, &data.Database, &data.Data, true, 0)
 				} else {
 					return
 				}
@@ -435,7 +435,7 @@ func determineReplicas() (err error) {
 				return errors.New("too many nodes in replica currently")
 			}
 
-			// Update the node that we are part of the group now
+			// TODO: Update the node that we are part of the group now
 			// apiCall that will go through `ReplicateRequest` on another node
 
 			// Update this controller data with the replication group
@@ -448,15 +448,20 @@ func determineReplicas() (err error) {
 			controller.ReplicaNodeIds = append(controller.ReplicaNodeIds, controller.NodeId)
 
 			// remove node not in replication group
+			// TODO: is this required? or should we sync with the secondaryNodeGroup on data updates until the replicaGroup is full?
 			go removeNode(rg.ReplicaNodeGroup)
 
 			// start pulling in the data required
 			go syncData()
 
+			// TODO: Remove the secondaryNodeGroup from this replica group if it is a full group
+
 			// do not go through process of pulling in new data
 			return
 		}
 	}
+
+	// TODO: Need to do the NO part of this check, it is currently missing
 
 	return nil
 }
@@ -469,63 +474,78 @@ func terminateReplicas() (err error) {
 	// TODO: Need to build out this functionality
 
 	// FIXME: In the future we want to have the data evenly spread across the currently active nodes rather than just one
-	// Generate random index to send all of the data to
-	randIndex := rand.Intn(len(controller.Data.CollectiveNodes))
 
-	// Insert the data into the intended node so that there is no data loss
-	disperseData := make(chan *proto.Data)
-	client.DataUpdate(&controller.Data.CollectiveNodes[randIndex].ReplicaNodes[0].IpAddress, disperseData)
+	// We only want this functionality to run IF this is currently a full replicaGroup and will no longer be full
+	// 		distribute the existing data into the newly created secondaryNodeGroup
+	if len(controller.ReplicaNodeIds) == replicaCount {
 
-	// Create the dictionary update request channel, have all data dictionary updates go through the first node
-	updateDictionary := make(chan *proto.DataUpdates)
-	client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+		// Generate random index to send all of the data to
+		randIndex := rand.Intn(len(controller.Data.CollectiveNodes))
 
-	// Create channel to retrieve all of the stored data through the retrieveAllReplicaData function
-	replicaData := make(chan *StoredData)
-	retrieveAllReplicaData(replicaData)
-	for {
-		if storedData := <-replicaData; storedData != nil {
-			// TODO: need to create an override for this so that the data is stored on this node rather than updated
-			// Send the data to the new decided node
-			disperseData <- &proto.Data{
-				Key:              storedData.DataKey,
-				Database:         storedData.Database,
-				Data:             storedData.Data,
-				ReplicaNodeGroup: int32(storedData.ReplicaNodeGroup),
+		// Insert the data into the intended node so that there is no data loss
+		disperseData := make(chan *proto.Data)
+		client.DataUpdate(&controller.Data.CollectiveNodes[randIndex].ReplicaNodes[0].IpAddress, disperseData)
+
+		// Create channel to retrieve all of the stored data through the retrieveAllReplicaData function
+		replicaData := make(chan *StoredData)
+		retrieveAllReplicaData(replicaData)
+		for {
+			if storedData := <-replicaData; storedData != nil {
+
+				// Send the data to the new decided node with the secondaryNodeGroup populated
+				disperseData <- &proto.Data{
+					Key:                storedData.DataKey,
+					Database:           storedData.Database,
+					Data:               storedData.Data,
+					SecondaryNodeGroup: int32(controller.Data.CollectiveNodes[randIndex].ReplicaNodeGroup),
+				}
+
+			} else {
+				disperseData <- nil
+				break
 			}
-
-			// TODO: Should we let the new node group update that it has this data? Or have it updated from here? If the node is shutting down, it might be easier to send from the new node
-			// Update the data dictionary with the new location for that data
-			dataDictionaryItem := retrieveFromDataDictionary(&storedData.DataKey)
-
-			// Add the new IP we sent the data to the list of node ids
-			newListOfNodeIds := dataDictionaryItem.ReplicatedNodeIds
-			newListOfNodeIds = append(newListOfNodeIds, controller.Data.CollectiveNodes[randIndex].ReplicaNodes[0].NodeId)
-
-			updateDictionary <- &proto.DataUpdates{
-				CollectiveUpdate: &proto.CollectiveDataUpdate{
-					Update:     true,
-					UpdateType: UPDATE,
-					Data: &proto.CollectiveData{
-						ReplicaNodeGroup:  int32(dataDictionaryItem.ReplicaNodeGroup),
-						DataKey:           dataDictionaryItem.DataKey,
-						Database:          dataDictionaryItem.Database,
-						ReplicatedNodeIds: newListOfNodeIds,
-					},
-				},
-			}
-
-		} else {
-			break
 		}
+
+		// Do a collective update to set the secondaryNodeGroup
+		// 		Call the dictionary function before passing the data into the channel
+		// 		send the update to the first node in the list - the master node
+		updateDictionary := make(chan *proto.DataUpdates)
+		client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+
+		replicaNodesInSync := []*proto.ReplicaNodes{}
+		// Assemble the nodes apart from this node that is being removed
+		for i := range controller.ReplicaNodes {
+			if controller.ReplicaNodes[i].NodeId != controller.NodeId {
+				replicaNodesInSync = append(replicaNodesInSync, &proto.ReplicaNodes{
+					NodeId:    controller.ReplicaNodes[i].NodeId,
+					IpAddress: controller.ReplicaNodes[i].IpAddress,
+				})
+			}
+		}
+
+		// Assemble the new node group that is not full and assign the secondaryNodeGroup ID
+		updateDictionary <- &proto.DataUpdates{
+			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
+				Update:     true,
+				UpdateType: UPDATE,
+				UpdateReplica: &proto.UpdateReplica{
+					ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
+					FullGroup:          false,
+					ReplicaNodes:       replicaNodesInSync,
+					SecondaryNodeGroup: int32(controller.Data.CollectiveNodes[randIndex].ReplicaNodeGroup),
+				},
+			},
+		}
+		updateDictionary <- nil
 	}
 
-	// TODO: Need to determine a way to notice a lost node and automatically trigger a data distribution
+	// TODO: Determine if this is the last node removed from a replica node group and have all the data belong to the secondaryNodeGroup now
+	// 		This should include a Dictionary update
 
 	return nil
 }
 
-func distributeData(key, bucket *string, data *[]byte) error {
+func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) error {
 
 	if *key == "" || *bucket == "" {
 		return errors.New("invalid parameters")
@@ -538,17 +558,14 @@ func distributeData(key, bucket *string, data *[]byte) error {
 		ReplicatedNodeIds: controller.ReplicaNodeIds,
 	}
 
-	// Add this node to the DataDictionary
-	updateType := addToDataDictionary(newData)
-
 	if active {
-
 		// Create the data object to be sent
 		dataUpdate := &proto.Data{
-			Key:              *key,
-			Database:         *bucket,
-			Data:             *data,
-			ReplicaNodeGroup: int32(controller.ReplicaNodeGroup),
+			Key:                *key,
+			Database:           *bucket,
+			Data:               *data,
+			ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
+			SecondaryNodeGroup: int32(secondaryNodeGroup),
 		}
 
 		// Send to each replica attached to this replica node group
@@ -561,27 +578,65 @@ func distributeData(key, bucket *string, data *[]byte) error {
 			}
 		}
 
-		// Fire off DataDictionary update process through the collective - DictionaryUpdate rpc
-		// Create the data update request object
-		updateDictionary := make(chan *proto.DataUpdates)
+		// Double check that the secondaryNodeGroup is 0 before starting to process
+		if secondaryNodeGroup != 0 {
+			for i := range controller.Data.CollectiveNodes {
+				if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryNodeGroup {
+					for j := range controller.Data.CollectiveNodes[i].ReplicaNodes {
+						updateReplica := make(chan *proto.Data)
+						client.ReplicaDataUpdate(&controller.Data.CollectiveNodes[j].ReplicaNodes[j].IpAddress, updateReplica)
+						updateReplica <- dataUpdate
+						updateReplica <- nil
+					}
 
-		// Call the dictionary function before passing the data into the channel
-		// send the update to the first node in the list
-		client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+					// IF this replicaGroup is not complete and has a secondaryNodeGroup, THEN forward to all nodes in that group as well
+					if !controller.Data.CollectiveNodes[i].FullGroup {
+						for j := range controller.Data.CollectiveNodes {
+							if controller.Data.CollectiveNodes[j].ReplicaNodeGroup == controller.Data.CollectiveNodes[i].SecondaryNodeGroup {
+								// Send the update to the first node of that replica to start the update process from there
+								dataUpdate.SecondaryNodeGroup = int32(controller.Data.CollectiveNodes[i].SecondaryNodeGroup)
 
-		updateDictionary <- &proto.DataUpdates{
-			CollectiveUpdate: &proto.CollectiveDataUpdate{
-				Update:     true,
-				UpdateType: int32(updateType),
-				Data: &proto.CollectiveData{
-					ReplicaNodeGroup:  int32(newData.ReplicaNodeGroup),
-					DataKey:           newData.DataKey,
-					Database:          newData.Database,
-					ReplicatedNodeIds: newData.ReplicatedNodeIds,
-				},
-			},
+								updateReplica := make(chan *proto.Data)
+								client.ReplicaDataUpdate(&controller.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, updateReplica)
+								updateReplica <- dataUpdate
+								updateReplica <- nil
+								break
+							}
+						}
+						break
+					}
+				}
+			}
 		}
-		updateDictionary <- nil
+
+		// Only update the data dictionary with this data if it was not sent here as part of the secondaryNodeGroup
+		if secondaryNodeGroup != controller.ReplicaNodeGroup {
+
+			// Add this node to the DataDictionary
+			updateType := addToDataDictionary(newData)
+
+			// Fire off DataDictionary update process through the collective - DictionaryUpdate rpc
+			// Create the data update request object
+			updateDictionary := make(chan *proto.DataUpdates)
+
+			// Call the dictionary function before passing the data into the channel
+			// send the update to the first node in the list
+			client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+
+			updateDictionary <- &proto.DataUpdates{
+				CollectiveUpdate: &proto.CollectiveDataUpdate{
+					Update:     true,
+					UpdateType: int32(updateType),
+					Data: &proto.CollectiveData{
+						ReplicaNodeGroup:  int32(newData.ReplicaNodeGroup),
+						DataKey:           newData.DataKey,
+						Database:          newData.Database,
+						ReplicatedNodeIds: newData.ReplicatedNodeIds,
+					},
+				},
+			}
+			updateDictionary <- nil
+		}
 	}
 
 	return nil

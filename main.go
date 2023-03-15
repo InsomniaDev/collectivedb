@@ -49,3 +49,5 @@ func main() {
 	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
 	grpcServer.Serve(lis)
 }
+
+// TODO: set a block to catch a SIG KILL or SIG TERM signal that will then fire off the terminateReplicas functionality

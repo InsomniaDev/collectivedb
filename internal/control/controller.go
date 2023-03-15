@@ -167,20 +167,21 @@ func ReplicaUpdate(update *DataUpdate) {
 	// Update the collective with the new information
 	collectiveUpdate(update)
 
+	// TODO: Need to determine a way to notice a lost node and automatically trigger a data distribution
 }
 
 // ReplicaStoreData
 //
 //	Will store the data provided from another replica and not update DataDictionary or attempt to replicate
-func ReplicaStoreData(key, bucket string, data []byte) (bool, *string) {
-	return storeData(&key, &bucket, &data, true)
+func ReplicaStoreData(key, bucket string, data []byte, secondaryNodeGroup int) (bool, *string) {
+	return storeData(&key, &bucket, &data, true, secondaryNodeGroup)
 }
 
 // storeData
 //
 //	Will store the provided data on this node
-func storeData(key, bucket *string, data *[]byte, replicaStore bool) (bool, *string) {
-	return storeDataInDatabase(key, bucket, data, replicaStore)
+func storeData(key, bucket *string, data *[]byte, replicaStore bool, secondaryNodeGroup int) (bool, *string) {
+	return storeDataInDatabase(key, bucket, data, replicaStore, secondaryNodeGroup)
 }
 
 // RetrieveData

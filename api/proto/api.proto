@@ -88,6 +88,7 @@ message UpdateReplica {
     int32 replicaNodeGroup = 1;
     bool fullGroup = 2;
     repeated ReplicaNodes replicaNodes = 3;
+    int32 secondaryNodeGroup = 4;
 }
 
 message ReplicaNodes {
@@ -104,6 +105,7 @@ message Data {
     string database = 2;
     bytes data = 3;
     int32 replicaNodeGroup = 4;
+    int32 secondaryNodeGroup = 5;
 }
 
 message Updated {

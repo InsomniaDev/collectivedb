@@ -286,6 +286,8 @@ func Test_removeNode(t *testing.T) {
 }
 
 func Test_distributeData(t *testing.T) {
+	// TODO: Add in tests for the secondaryNodeGroup
+
 	bucket := "test"
 
 	testKey := "key"
@@ -295,9 +297,10 @@ func Test_distributeData(t *testing.T) {
 	falseKey := ""
 
 	type args struct {
-		key    *string
-		bucket *string
-		data   *[]byte
+		key                *string
+		bucket             *string
+		data               *[]byte
+		secondaryNodeGroup int
 	}
 	tests := []struct {
 		name    string
@@ -307,25 +310,27 @@ func Test_distributeData(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
-				key:    &testKey,
-				bucket: &bucket,
-				data:   &testValue,
+				key:                &testKey,
+				bucket:             &bucket,
+				data:               &testValue,
+				secondaryNodeGroup: 0,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Failure",
 			args: args{
-				key:    &falseKey,
-				bucket: &falseBucket,
-				data:   &testValue,
+				key:                &falseKey,
+				bucket:             &falseBucket,
+				data:               &testValue,
+				secondaryNodeGroup: 0,
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := distributeData(tt.args.key, tt.args.bucket, tt.args.data); (err != nil) != tt.wantErr {
+			if err := distributeData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.secondaryNodeGroup); (err != nil) != tt.wantErr {
 				t.Errorf("distributeData() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

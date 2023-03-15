@@ -6,6 +6,8 @@ import (
 )
 
 func TestStoreData(t *testing.T) {
+	// TODO: add tests to handle secondaryNodeGroup functionality
+
 	bucket := "test"
 
 	newData := ""
@@ -13,10 +15,11 @@ func TestStoreData(t *testing.T) {
 	testValue := []byte("value")
 
 	type args struct {
-		key          *string
-		bucket       *string
-		data         *[]byte
-		replicaStore bool
+		key                *string
+		bucket             *string
+		data               *[]byte
+		replicaStore       bool
+		secondaryNodeGroup int
 	}
 	tests := []struct {
 		name  string
@@ -27,10 +30,11 @@ func TestStoreData(t *testing.T) {
 		{
 			name: "New",
 			args: args{
-				key:          &newData,
-				bucket:       &bucket,
-				data:         &testValue,
-				replicaStore: false,
+				key:                &newData,
+				bucket:             &bucket,
+				data:               &testValue,
+				replicaStore:       false,
+				secondaryNodeGroup: 0,
 			},
 			want:  true,
 			want1: &newData,
@@ -38,10 +42,11 @@ func TestStoreData(t *testing.T) {
 		{
 			name: "UpdatedOtherNode",
 			args: args{
-				key:          &testKey,
-				bucket:       &bucket,
-				data:         &testValue,
-				replicaStore: false,
+				key:                &testKey,
+				bucket:             &bucket,
+				data:               &testValue,
+				replicaStore:       false,
+				secondaryNodeGroup: 0,
 			},
 			want:  true,
 			want1: &testKey,
@@ -49,7 +54,7 @@ func TestStoreData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := storeData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore)
+			got, got1 := storeData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore, tt.args.secondaryNodeGroup)
 			if got != tt.want {
 				t.Errorf("storeData() got = %v, want %v", got, tt.want)
 			}
@@ -72,7 +77,7 @@ func TestRetrieveData(t *testing.T) {
 
 	testFailKey := "nope"
 
-	storeData(&testKey, &bucket, &testValue, false)
+	storeData(&testKey, &bucket, &testValue, false, 0)
 
 	type args struct {
 		key    *string

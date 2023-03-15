@@ -13,7 +13,7 @@ import (
 // storeDataInDatabase
 // will store the provided data into the database after checking if it requires an update first
 // if the data belongs with a different replica group, it will send the update request to that replica group
-func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool) (bool, *string) {
+func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, secondaryNodeGroup int) (bool, *string) {
 	ackLevel := os.Getenv("COLLECTIVE_ACK_LEVEL")
 	if ackLevel == "" {
 		ackLevel = "NONE"
@@ -24,9 +24,9 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool) (
 		if !replicaStore {
 			switch ackLevel {
 			case "ALL":
-				distributeData(key, bucket, data)
+				distributeData(key, bucket, data, secondaryNodeGroup)
 			case "NONE":
-				go distributeData(key, bucket, data)
+				go distributeData(key, bucket, data, secondaryNodeGroup)
 			}
 		}
 		return updated
@@ -46,8 +46,8 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool) (
 	// Determine what node the data is on, if the data does exist on a node
 	dataVolume := retrieveFromDataDictionary(key)
 
-	// If the data doesn't exist yet, but a key was provided OR data exists and needs to be updated
-	if dataVolume.DataKey == "" || dataVolume.ReplicaNodeGroup == controller.ReplicaNodeGroup {
+	// If the data doesn't exist yet, but a key was provided OR data exists and needs to be updated OR this data was sent in with a secondaryNodeGroup equal to this one
+	if dataVolume.DataKey == "" || dataVolume.ReplicaNodeGroup == controller.ReplicaNodeGroup || controller.ReplicaNodeGroup == secondaryNodeGroup {
 		// Distribute the data across the collective
 		return updateAndDistribute(), key
 	}

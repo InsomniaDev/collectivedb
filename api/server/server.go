@@ -125,7 +125,7 @@ func (s *grpcServer) DataUpdate(stream proto.RouteGuide_DataUpdateServer) error 
 			return err
 		}
 
-		updated, updatedKey := control.ReplicaStoreData(in.Key, in.Database, in.Data)
+		updated, updatedKey := control.ReplicaStoreData(in.Key, in.Database, in.Data, int(in.SecondaryNodeGroup))
 
 		if err := stream.Send(&proto.Updated{
 			UpdatedSuccessfully: updated,
@@ -148,7 +148,7 @@ func (s *grpcServer) ReplicaDataUpdate(stream proto.RouteGuide_ReplicaDataUpdate
 			return err
 		}
 
-		stored, key := control.ReplicaStoreData(in.Key, in.Database, in.Data)
+		stored, key := control.ReplicaStoreData(in.Key, in.Database, in.Data, int(in.SecondaryNodeGroup))
 
 		if err := stream.Send(&proto.Updated{
 			UpdatedSuccessfully: stored,

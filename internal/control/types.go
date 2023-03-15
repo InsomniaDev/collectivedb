@@ -21,9 +21,10 @@ type collective interface {
 
 // ReplicaGroup
 type ReplicaGroup struct {
-	ReplicaNodeGroup int    `json:"replicaNodeGroup"`
-	ReplicaNodes     []Node `json:"nodes"`
-	FullGroup        bool   `json:"fullGroup"`
+	ReplicaNodeGroup   int    `json:"replicaNodeGroup"`
+	SecondaryNodeGroup int    `json:"secondaryNodeGroup"`
+	ReplicaNodes       []Node `json:"nodes"`
+	FullGroup          bool   `json:"fullGroup"`
 }
 
 // Node struct

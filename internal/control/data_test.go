@@ -7,6 +7,8 @@ import (
 )
 
 func Test_storeDataInDatabase(t *testing.T) {
+	// TODO: add tests to handle secondaryNodeGroup functionality
+
 	key := "test"
 	bucket := "test"
 	data := []byte("hello")
@@ -14,10 +16,11 @@ func Test_storeDataInDatabase(t *testing.T) {
 	emptyKey := ""
 
 	type args struct {
-		key          *string
-		bucket       *string
-		data         *[]byte
-		replicaStore bool
+		key                *string
+		bucket             *string
+		data               *[]byte
+		replicaStore       bool
+		secondaryNodeGroup int
 	}
 	tests := []struct {
 		name  string
@@ -28,10 +31,11 @@ func Test_storeDataInDatabase(t *testing.T) {
 		{
 			name: "Store without key",
 			args: args{
-				key:          &emptyKey,
-				bucket:       &bucket,
-				data:         &data,
-				replicaStore: false,
+				key:                &emptyKey,
+				bucket:             &bucket,
+				data:               &data,
+				replicaStore:       false,
+				secondaryNodeGroup: 0,
 			},
 			want:  true,
 			want1: &key,
@@ -39,10 +43,11 @@ func Test_storeDataInDatabase(t *testing.T) {
 		{
 			name: "Stored successfully",
 			args: args{
-				key:          &key,
-				bucket:       &bucket,
-				data:         &data,
-				replicaStore: false,
+				key:                &key,
+				bucket:             &bucket,
+				data:               &data,
+				replicaStore:       false,
+				secondaryNodeGroup: 0,
 			},
 			want:  true,
 			want1: &key,
@@ -50,10 +55,11 @@ func Test_storeDataInDatabase(t *testing.T) {
 		{
 			name: "Stored replica successfully",
 			args: args{
-				key:          &key,
-				bucket:       &bucket,
-				data:         &data,
-				replicaStore: true,
+				key:                &key,
+				bucket:             &bucket,
+				data:               &data,
+				replicaStore:       true,
+				secondaryNodeGroup: 0,
 			},
 			want:  true,
 			want1: &key,
@@ -61,7 +67,7 @@ func Test_storeDataInDatabase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := storeDataInDatabase(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore)
+			got, got1 := storeDataInDatabase(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore, tt.args.secondaryNodeGroup)
 			if got != tt.want {
 				t.Errorf("storeDataInDatabase() got = %v, want %v", got, tt.want)
 			}
@@ -82,7 +88,7 @@ func Test_retrieveDataFromDatabase(t *testing.T) {
 	key := "test"
 	bucket := "test"
 	data := []byte("hello")
-	storeDataInDatabase(&key, &bucket, &data, false)
+	storeDataInDatabase(&key, &bucket, &data, false, 0)
 
 	wrongKey := "don'texist"
 
@@ -132,7 +138,7 @@ func Test_deleteDataFromDatabase(t *testing.T) {
 	key := "test"
 	bucket := "test"
 	data := []byte("hello")
-	storeDataInDatabase(&key, &bucket, &data, false)
+	storeDataInDatabase(&key, &bucket, &data, false, 0)
 
 	wrongKey := "don'texist"
 
@@ -183,7 +189,7 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 	key := "test"
 	bucket := "test"
 	data := []byte("hello")
-	storeDataInDatabase(&key, &bucket, &data, false)
+	storeDataInDatabase(&key, &bucket, &data, false, 0)
 	count := 0
 
 	controller.Data.DataLocations = []Data{
