@@ -6,13 +6,14 @@ import (
 
 // Main Controller struct
 type Controller struct {
-	NodeId           string         `json:"nodeId"`             // UUID of this node within the NodeList
-	IpAddress        string         `json:"ipAddress"`          // IpAddress of this node
-	KubeDeployed     bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
-	ReplicaNodeGroup int            `json:"ReplicaNodeGroup"`   // The replica node id
-	ReplicaNodeIds   []string       `json:"replicaNodeIds"`     // Replica node ids for distributing traffic
-	ReplicaNodes     []Node         `json:"replicaNodes"`       // Replica nodes of this node
-	Data             DataDictionary `json:"data"`               // Location of all the keys to nodes
+	NodeId             string         `json:"nodeId"`             // UUID of this node within the NodeList
+	IpAddress          string         `json:"ipAddress"`          // IpAddress of this node
+	KubeDeployed       bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
+	ReplicaNodeGroup   int            `json:"replicaNodeGroup"`   // The replica node id
+	SecondaryNodeGroup int            `json:"secondaryNodeGroup"` // The secondary node group id // TODO: Need to get this actually populated
+	ReplicaNodeIds     []string       `json:"replicaNodeIds"`     // Replica node ids for distributing traffic
+	ReplicaNodes       []Node         `json:"replicaNodes"`       // Replica nodes of this node
+	Data               DataDictionary `json:"data"`               // Location of all the keys to nodes
 }
 
 type collective interface {
@@ -45,6 +46,7 @@ type Data struct {
 	DataKey           string   `json:"dataKey"`
 	Database          string   `json:"database"`
 	ReplicatedNodeIds []string `json:"replicatedNodes"`
+	// TODO: remove the ReplicatedNodeIds, and have all logic go through the CollectiveNodes to determine active replicas (we can randomly choose IPs to request from)
 }
 
 // Data struct

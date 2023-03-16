@@ -392,8 +392,6 @@ func determineReplicas() (err error) {
 // When this node shuts down, this function will ensure that there is no data loss and will offload data to other nodes if required
 func TerminateReplicas() (err error) {
 
-	// TODO: Need to build out this functionality
-
 	// We only want this functionality to run IF this is currently a full replicaGroup and will no longer be full
 	// 		distribute the existing data into the newly created secondaryNodeGroup
 	if len(controller.ReplicaNodeIds) == replicaCount {
@@ -453,21 +451,46 @@ func TerminateReplicas() (err error) {
 		})
 	}
 
-	// TODO: Determine if this is the last node removed from a replica node group and have all the data belong to the secondaryNodeGroup now
+	// Determine if this is the last node removed from a replica node group and have all the data belong to the secondaryNodeGroup now
 	// 		This should include a Dictionary update
 	// Delete this replica group from the collective
-	sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
-		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
-			Update:     true,
-			UpdateType: DELETE,
-			UpdateReplica: &proto.UpdateReplica{
-				ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
-				FullGroup:          false,
-				ReplicaNodes:       []*proto.ReplicaNodes{},
-				SecondaryNodeGroup: 0,
+	if len(controller.ReplicaNodes) == 1 && controller.ReplicaNodes[0].NodeId == controller.NodeId {
+		// Update all of the DataLocations to have the secondaryNodeGroup now
+		updateDictionary := make(chan *proto.DataUpdates)
+		client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+		for i := range controller.Data.DataLocations {
+			// IF the data is for this replicaNodeGroup
+			if controller.Data.DataLocations[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
+				// THEN change the replicaNodeGroup to the secondaryNodeGroup
+				updateDictionary <- &proto.DataUpdates{
+					CollectiveUpdate: &proto.CollectiveDataUpdate{
+						Update:     true,
+						UpdateType: UPDATE,
+						Data: &proto.CollectiveData{
+							ReplicaNodeGroup: int32(controller.SecondaryNodeGroup),
+							DataKey:          controller.Data.DataLocations[i].DataKey,
+							Database:         controller.Data.DataLocations[i].Database,
+						},
+					},
+				}
+			}
+		}
+		updateDictionary <- nil
+
+		// Remove this node from the collective database
+		sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
+				Update:     true,
+				UpdateType: DELETE,
+				UpdateReplica: &proto.UpdateReplica{
+					ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
+					FullGroup:          false,
+					ReplicaNodes:       []*proto.ReplicaNodes{},
+					SecondaryNodeGroup: 0,
+				},
 			},
-		},
-	})
+		})
+	}
 
 	return nil
 }
