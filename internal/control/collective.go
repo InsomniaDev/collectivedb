@@ -365,6 +365,8 @@ func determineReplicas() (err error) {
 		}
 	}
 
+	// TODO: If all groups are full then we should immediately create a new group, the new group needs to have the secondaryNodeGroup set
+
 	// TODO: Need to do the NO part of this check, it is currently missing
 
 	return nil
