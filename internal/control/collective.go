@@ -150,6 +150,8 @@ func determineIpAddress() string {
 
 	envIp = os.Getenv("COLLECTIVE_IP")
 
+	// FIXME: Can't we just take the provided master node IP and then have that send us back what our IP is?
+
 	resolverFile := "/etc/resolv.conf"
 	// Check if resolver file is provided
 	envResolverFile := os.Getenv("COLLECTIVE_RESOLVER_FILE")
@@ -291,13 +293,9 @@ func determineReplicas() (err error) {
 	// Scale OUT Algorithm
 	//
 	// 	OPEN replica group?
-	// 		YES - Add to group, pull data, remove data from expired replica node (check data and update data dictionary)
+	// 		YES - Add to group, pull data, remove data from secondaryNodeGroup if now a full group (check data and update data dictionary)
 	// 		NO - Create new group
-	// 			 Pull replica % from random nodes up to total replica count (rc)
-	// 			 	eg., 33% from 3 nodes for replica count of 3
-	// 			 Update for data location
-	// 			 For each new replica added, remove data from 1 node per replica added
-	// 				eg., search through the data dictionary for replica group and remove the replica nodes
+	// 				Set the secondaryNodeGroup immediately
 
 	// Cycle through the collective replica groups and determine if there is a new group
 	for _, rg := range controller.Data.CollectiveNodes {
@@ -327,9 +325,11 @@ func determineReplicas() (err error) {
 				// Remove the secondaryNodeGroup from this replica group if it is a full group
 				rg.SecondaryNodeGroup = 0
 
-				// TODO: Clean up - remove this replica group data from the secondaryNodeGroup
+				// Clean up - remove this replica group data from the secondaryNodeGroup
 				// since we are now a full group, then delete all of the data from the secondary node group
-				go removeDataFromSecondaryNodeGroup(rg.ReplicaNodeGroup)
+				if err := removeDataFromSecondaryNodeGroup(rg.ReplicaNodeGroup); err != nil {
+					return err
+				}
 			}
 
 			replicaNodesInSync := []*proto.ReplicaNodes{}
@@ -365,21 +365,34 @@ func determineReplicas() (err error) {
 		}
 	}
 
-	// TODO: If all groups are full then we should immediately create a new group, the new group needs to have the secondaryNodeGroup set
-
-	// TODO: Need to do the NO part of this check, it is currently missing
+	// If all groups are full then we should immediately create a new group,
+	// 		the new group needs to have the secondaryNodeGroup set
+	randIndex := rand.Intn(len(controller.Data.CollectiveNodes))
+	sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
+			Update:     true,
+			UpdateType: NEW,
+			UpdateReplica: &proto.UpdateReplica{
+				ReplicaNodeGroup: int32(controller.ReplicaNodeGroup),
+				FullGroup:        false,
+				ReplicaNodes: []*proto.ReplicaNodes{{
+					NodeId:    controller.NodeId,
+					IpAddress: controller.IpAddress,
+				}},
+				SecondaryNodeGroup: int32(controller.Data.CollectiveNodes[randIndex].ReplicaNodeGroup),
+			},
+		},
+	})
 
 	return nil
 }
 
-// terminateReplicas
+// TerminateReplicas
 //
 // When this node shuts down, this function will ensure that there is no data loss and will offload data to other nodes if required
-func terminateReplicas() (err error) {
+func TerminateReplicas() (err error) {
 
 	// TODO: Need to build out this functionality
-
-	// FIXME: In the future we want to have the data evenly spread across the currently active nodes rather than just one
 
 	// We only want this functionality to run IF this is currently a full replicaGroup and will no longer be full
 	// 		distribute the existing data into the newly created secondaryNodeGroup
@@ -442,6 +455,19 @@ func terminateReplicas() (err error) {
 
 	// TODO: Determine if this is the last node removed from a replica node group and have all the data belong to the secondaryNodeGroup now
 	// 		This should include a Dictionary update
+	// Delete this replica group from the collective
+	sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
+			Update:     true,
+			UpdateType: DELETE,
+			UpdateReplica: &proto.UpdateReplica{
+				ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
+				FullGroup:          false,
+				ReplicaNodes:       []*proto.ReplicaNodes{},
+				SecondaryNodeGroup: 0,
+			},
+		},
+	})
 
 	return nil
 }

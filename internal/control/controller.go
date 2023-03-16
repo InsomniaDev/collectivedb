@@ -36,6 +36,8 @@ func init() {
 	// 	COLLECTIVE_RESOLVER_FILE - will override default /etc/resolv.conf file
 	controller.IpAddress = determineIpAddress()
 
+	// TODO: Need to pull the Collective Database from another node prior to any real work happening here
+
 	// Will assign replicas to this node
 	determineReplicas()
 
