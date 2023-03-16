@@ -18,4 +18,4 @@ Business logic behind the replication between nodes.
 
 ### Deleting a Replica Group
 - When the last node from a replica group is removed, then all of the data will fail over to where it has been stored on the secondaryGroup
-- All of the collective data entries will be updated to reflect their location as being on the new replicaGroup (what once was the secondaryGroup)
+  - All of the collective data entries will be updated to reflect their location as being on the new replicaGroup (what once was the secondaryGroup)
