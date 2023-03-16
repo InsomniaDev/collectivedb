@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/insomniadev/collective-db/api/client"
@@ -229,11 +228,8 @@ func syncData() (err error) {
 
 		// Make a wait group and a channel for the returned data
 		dataToStore := make(chan *proto.Data)
-		var wg sync.WaitGroup
 
-		wg.Add(1)
 		go func(store chan *proto.Data) {
-			defer wg.Done()
 			for {
 				data := <-store
 				if data != nil {
@@ -253,160 +249,38 @@ func syncData() (err error) {
 	return nil
 }
 
-// removeNode
+// removeDataFromSecondaryNodeGroup
 //
-//	when adding a node to an existing replica group, remove a node that holds the data but is not part of the replication group
-func removeNode(replicationGroup int) (nodeRemoved Node, err error) {
-	// Get the replica group with nodes from collective
-	replicatedNodesForGroup := []Node{}
+//	when a replica group becomes a full group, then remove all of that replica data from the secondaryNodeGroup
+func removeDataFromSecondaryNodeGroup(secondaryGroup int) error {
+
+	// get the ipAddress for the leader of the secondary node group
+	ipAddress := ""
 	for i := range controller.Data.CollectiveNodes {
-		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == replicationGroup {
-			replicatedNodesForGroup = controller.Data.CollectiveNodes[i].ReplicaNodes
-			break
+		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryGroup {
+			// This ipAddress is very important, if done incorrectly we can suffer massive data loss
+			ipAddress = controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress
 		}
 	}
 
-	if replicatedNodesForGroup == nil {
-		return Node{}, errors.New("replication group doesn't exist")
+	// create the channel to start deleting the data
+	deleteData := make(chan *proto.Data)
+	if err := client.DeleteData(&ipAddress, deleteData); err != nil {
+		return err
 	}
 
-	found := false
-	// Determine node to remove data from
+	// cycle through the data for the entries that are for this secondaryGroup
 	for i := range controller.Data.DataLocations {
-		// Check to see if the replica group number matches the one we are looking for
-		if controller.Data.DataLocations[i].ReplicaNodeGroup == replicationGroup {
-			// If length of replicatedNodeIds is greater than the replica count
-			if len(controller.Data.DataLocations[i].ReplicatedNodeIds) > replicaCount {
-				// Cycle through and see if the data has a node id that doesn't match with the replica nodes
-				for j := range controller.Data.DataLocations[i].ReplicatedNodeIds {
-					// Set boolean if it matches the current group
-					matchesCurrentGroup := false
-
-					// Go through nodes for the replica group and compare
-					for rg := range replicatedNodesForGroup {
-						if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == replicatedNodesForGroup[rg].NodeId {
-							matchesCurrentGroup = true
-						}
-					}
-
-					// If the node wasn't discovered, then set it as the discovered node
-					if !matchesCurrentGroup {
-						nodeRemoved.NodeId = controller.Data.DataLocations[i].ReplicatedNodeIds[j]
-						found = true
-						break
-					}
-				}
+		// IF the data is set for this replicaGroup
+		if controller.Data.DataLocations[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
+			// THEN send a deletion command to the leader node for the replicationGroup that is the secondaryNodeGroup
+			deleteData <- &proto.Data{
+				Key:      controller.Data.DataLocations[i].DataKey,
+				Database: controller.Data.DataLocations[i].Database,
 			}
 		}
-		if found {
-			break
-		}
 	}
-
-	if nodeRemoved.NodeId == "" {
-		return Node{}, errors.New("there is no node to be removed")
-	}
-
-	// Cycle through the collective group to determine which node we are removing
-	found = false
-	for i := range controller.Data.CollectiveNodes {
-		for rg := range controller.Data.CollectiveNodes[i].ReplicaNodes {
-			// Does the collective node replica group node match the node id we are attempting to remove
-			if controller.Data.CollectiveNodes[i].ReplicaNodes[rg].NodeId == nodeRemoved.NodeId {
-				// Update so that we have the IP to send removal of data requests to
-				nodeRemoved = controller.Data.CollectiveNodes[i].ReplicaNodes[rg]
-				found = true
-				break
-			}
-		}
-		if found {
-			break
-		}
-	}
-
-	if nodeRemoved.IpAddress == "" {
-		// FIXME: In the future, if the node no longer exists then we should do some cleanup in the data dictionary
-		return Node{}, errors.New("this node no longer exists")
-	}
-
-	var callToRemove = func(data []Data) {
-		// Remove all of these data entries to the IP of the remove node
-		protoData := proto.DataArray{}
-		for i := range data {
-			protoData.Data = append(protoData.Data, &proto.Data{
-				Key:      data[i].DataKey,
-				Database: data[i].Database,
-			})
-		}
-		if active {
-			client.DeleteData(&nodeRemoved.IpAddress, &protoData)
-		}
-
-		// Dictionary update to remove from dictionary groups
-		// Create the data update request object
-		var wg sync.WaitGroup
-		updateDictionary := make(chan *proto.DataUpdates)
-
-		// Call the dictionary function before going through all of the data elements
-		// send the update to the first node in the list
-		client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
-
-		wg.Add(1)
-		go func(data []Data) {
-			defer wg.Done()
-			for i := range data {
-				for j := range controller.Data.DataLocations {
-					if controller.Data.DataLocations[j].DataKey == data[i].DataKey {
-						newListOfIps := []string{}
-						for k := range data[i].ReplicatedNodeIds {
-							if data[i].ReplicatedNodeIds[k] != nodeRemoved.NodeId {
-								newListOfIps = append(newListOfIps, data[i].ReplicatedNodeIds[k])
-							}
-						}
-						updateDictionary <- &proto.DataUpdates{
-							CollectiveUpdate: &proto.CollectiveDataUpdate{
-								Update:     true,
-								UpdateType: UPDATE,
-								Data: &proto.CollectiveData{
-									ReplicaNodeGroup:  int32(data[i].ReplicaNodeGroup),
-									DataKey:           data[i].DataKey,
-									Database:          data[i].Database,
-									ReplicatedNodeIds: newListOfIps,
-								},
-							},
-						}
-					}
-				}
-			}
-			updateDictionary <- nil
-		}(data)
-
-		wg.Wait()
-	}
-
-	// Go through and remove all of the data that this node has for this replica group
-	dataToRemove := []Data{}
-	for i := range controller.Data.DataLocations {
-		// Check if the data is in this replication group and should be removed
-		if replicationGroup == controller.Data.DataLocations[i].ReplicaNodeGroup {
-			for j := range controller.Data.DataLocations[i].ReplicatedNodeIds {
-				if controller.Data.DataLocations[i].ReplicatedNodeIds[j] == nodeRemoved.NodeId {
-					dataToRemove = append(dataToRemove, controller.Data.DataLocations[i])
-				}
-			}
-		}
-		if len(dataToRemove) > 50 {
-			if active {
-				go callToRemove(dataToRemove)
-			}
-			dataToRemove = []Data{}
-		}
-	}
-	if active {
-		go callToRemove(dataToRemove)
-	}
-
-	return nodeRemoved, nil
+	return nil
 }
 
 // DetermineReplicas
@@ -435,9 +309,6 @@ func determineReplicas() (err error) {
 				return errors.New("too many nodes in replica currently")
 			}
 
-			// TODO: Update the node that we are part of the group now
-			// apiCall that will go through `ReplicateRequest` on another node
-
 			// Update this controller data with the replication group
 			controller.ReplicaNodeGroup = rg.ReplicaNodeGroup
 			controller.ReplicaNodes = rg.ReplicaNodes
@@ -447,14 +318,47 @@ func determineReplicas() (err error) {
 			})
 			controller.ReplicaNodeIds = append(controller.ReplicaNodeIds, controller.NodeId)
 
-			// remove node not in replication group
-			// TODO: is this required? or should we sync with the secondaryNodeGroup on data updates until the replicaGroup is full?
-			go removeNode(rg.ReplicaNodeGroup)
+			// If we currently match the amount of replicas expected, then let's set this as a full group
+			// 		set the secondaryNodeGroup to 0 IF this is a full group, else keep the current group
+			fullGroup := false
+			if len(controller.ReplicaNodeIds) == replicaCount {
+				fullGroup = true
+
+				// Remove the secondaryNodeGroup from this replica group if it is a full group
+				rg.SecondaryNodeGroup = 0
+
+				// TODO: Clean up - remove this replica group data from the secondaryNodeGroup
+				// since we are now a full group, then delete all of the data from the secondary node group
+				go removeDataFromSecondaryNodeGroup(rg.ReplicaNodeGroup)
+			}
+
+			replicaNodesInSync := []*proto.ReplicaNodes{}
+			// Assemble the nodes apart from this node that is being removed
+			for i := range controller.ReplicaNodes {
+				if controller.ReplicaNodes[i].NodeId != controller.NodeId {
+					replicaNodesInSync = append(replicaNodesInSync, &proto.ReplicaNodes{
+						NodeId:    controller.ReplicaNodes[i].NodeId,
+						IpAddress: controller.ReplicaNodes[i].IpAddress,
+					})
+				}
+			}
+
+			// Update the DataDictionary that this node is now part of the collective
+			sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+				ReplicaUpdate: &proto.CollectiveReplicaUpdate{
+					Update:     true,
+					UpdateType: UPDATE,
+					UpdateReplica: &proto.UpdateReplica{
+						ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
+						FullGroup:          fullGroup,
+						ReplicaNodes:       replicaNodesInSync,
+						SecondaryNodeGroup: int32(rg.SecondaryNodeGroup),
+					},
+				},
+			})
 
 			// start pulling in the data required
 			go syncData()
-
-			// TODO: Remove the secondaryNodeGroup from this replica group if it is a full group
 
 			// do not go through process of pulling in new data
 			return
@@ -506,12 +410,6 @@ func terminateReplicas() (err error) {
 			}
 		}
 
-		// Do a collective update to set the secondaryNodeGroup
-		// 		Call the dictionary function before passing the data into the channel
-		// 		send the update to the first node in the list - the master node
-		updateDictionary := make(chan *proto.DataUpdates)
-		client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
-
 		replicaNodesInSync := []*proto.ReplicaNodes{}
 		// Assemble the nodes apart from this node that is being removed
 		for i := range controller.ReplicaNodes {
@@ -523,8 +421,10 @@ func terminateReplicas() (err error) {
 			}
 		}
 
-		// Assemble the new node group that is not full and assign the secondaryNodeGroup ID
-		updateDictionary <- &proto.DataUpdates{
+		// Do a collective update to set the secondaryNodeGroup
+		// 		Call the dictionary function before passing the data into the channel
+		// 		send the update to the first node in the list - the master node
+		sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 				Update:     true,
 				UpdateType: UPDATE,
@@ -535,8 +435,7 @@ func terminateReplicas() (err error) {
 					SecondaryNodeGroup: int32(controller.Data.CollectiveNodes[randIndex].ReplicaNodeGroup),
 				},
 			},
-		}
-		updateDictionary <- nil
+		})
 	}
 
 	// TODO: Determine if this is the last node removed from a replica node group and have all the data belong to the secondaryNodeGroup now
@@ -615,15 +514,7 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 			// Add this node to the DataDictionary
 			updateType := addToDataDictionary(newData)
 
-			// Fire off DataDictionary update process through the collective - DictionaryUpdate rpc
-			// Create the data update request object
-			updateDictionary := make(chan *proto.DataUpdates)
-
-			// Call the dictionary function before passing the data into the channel
-			// send the update to the first node in the list
-			client.DictionaryUpdate(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
-
-			updateDictionary <- &proto.DataUpdates{
+			sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 				CollectiveUpdate: &proto.CollectiveDataUpdate{
 					Update:     true,
 					UpdateType: int32(updateType),
@@ -634,8 +525,7 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 						ReplicatedNodeIds: newData.ReplicatedNodeIds,
 					},
 				},
-			}
-			updateDictionary <- nil
+			})
 		}
 	}
 
@@ -647,4 +537,21 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 func removeFromDictionarySlice[T collective](s []T, i int) []T {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
+}
+
+// sendClientUpdateDictionaryRequest
+//
+// extracted function that is used to send the update without all of the additional boilerplate code everywhere
+func sendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpdates) {
+	// TODO: Add unit test
+
+	// Create the channel
+	updateDictionary := make(chan *proto.DataUpdates)
+
+	// Call the dictionary function before passing the data into the channel
+	// send the update to the first node in the list
+	client.DictionaryUpdate(ipAddress, updateDictionary)
+
+	updateDictionary <- update
+	updateDictionary <- nil
 }

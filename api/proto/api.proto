@@ -55,7 +55,7 @@ service RouteGuide {
   // DeleteData
   // 
   // Will attempt to delete the data from the provided location, will return with a boolean for success status
-  rpc DeleteData(DataArray) returns (Updated) {}
+  rpc DeleteData(stream Data) returns (stream Updated) {}
 
 }
 
@@ -94,10 +94,6 @@ message UpdateReplica {
 message ReplicaNodes {
     string nodeId = 1;
     string ipAddress = 2;
-}
-
-message DataArray {
-    repeated Data data = 1;
 }
 
 message Data {

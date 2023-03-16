@@ -49,7 +49,7 @@ type RouteGuideClient interface {
 	// DeleteData
 	//
 	// Will attempt to delete the data from the provided location, will return with a boolean for success status
-	DeleteData(ctx context.Context, in *DataArray, opts ...grpc.CallOption) (*Updated, error)
+	DeleteData(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_DeleteDataClient, error)
 }
 
 type routeGuideClient struct {
@@ -225,13 +225,35 @@ func (c *routeGuideClient) GetData(ctx context.Context, in *Data, opts ...grpc.C
 	return out, nil
 }
 
-func (c *routeGuideClient) DeleteData(ctx context.Context, in *DataArray, opts ...grpc.CallOption) (*Updated, error) {
-	out := new(Updated)
-	err := c.cc.Invoke(ctx, "/main.RouteGuide/DeleteData", in, out, opts...)
+func (c *routeGuideClient) DeleteData(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_DeleteDataClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[5], "/main.RouteGuide/DeleteData", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &routeGuideDeleteDataClient{stream}
+	return x, nil
+}
+
+type RouteGuide_DeleteDataClient interface {
+	Send(*Data) error
+	Recv() (*Updated, error)
+	grpc.ClientStream
+}
+
+type routeGuideDeleteDataClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeGuideDeleteDataClient) Send(m *Data) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *routeGuideDeleteDataClient) Recv() (*Updated, error) {
+	m := new(Updated)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // RouteGuideServer is the server API for RouteGuide service.
@@ -265,7 +287,7 @@ type RouteGuideServer interface {
 	// DeleteData
 	//
 	// Will attempt to delete the data from the provided location, will return with a boolean for success status
-	DeleteData(context.Context, *DataArray) (*Updated, error)
+	DeleteData(RouteGuide_DeleteDataServer) error
 	mustEmbedUnimplementedRouteGuideServer()
 }
 
@@ -291,8 +313,8 @@ func (UnimplementedRouteGuideServer) ReplicaDataUpdate(RouteGuide_ReplicaDataUpd
 func (UnimplementedRouteGuideServer) GetData(context.Context, *Data) (*Data, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetData not implemented")
 }
-func (UnimplementedRouteGuideServer) DeleteData(context.Context, *DataArray) (*Updated, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteData not implemented")
+func (UnimplementedRouteGuideServer) DeleteData(RouteGuide_DeleteDataServer) error {
+	return status.Errorf(codes.Unimplemented, "method DeleteData not implemented")
 }
 func (UnimplementedRouteGuideServer) mustEmbedUnimplementedRouteGuideServer() {}
 
@@ -450,22 +472,30 @@ func _RouteGuide_GetData_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RouteGuide_DeleteData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DataArray)
-	if err := dec(in); err != nil {
+func _RouteGuide_DeleteData_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RouteGuideServer).DeleteData(&routeGuideDeleteDataServer{stream})
+}
+
+type RouteGuide_DeleteDataServer interface {
+	Send(*Updated) error
+	Recv() (*Data, error)
+	grpc.ServerStream
+}
+
+type routeGuideDeleteDataServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeGuideDeleteDataServer) Send(m *Updated) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *routeGuideDeleteDataServer) Recv() (*Data, error) {
+	m := new(Data)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(RouteGuideServer).DeleteData(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/main.RouteGuide/DeleteData",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RouteGuideServer).DeleteData(ctx, req.(*DataArray))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 // RouteGuide_ServiceDesc is the grpc.ServiceDesc for RouteGuide service.
@@ -478,10 +508,6 @@ var RouteGuide_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetData",
 			Handler:    _RouteGuide_GetData_Handler,
-		},
-		{
-			MethodName: "DeleteData",
-			Handler:    _RouteGuide_DeleteData_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -511,6 +537,12 @@ var RouteGuide_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ReplicaDataUpdate",
 			Handler:       _RouteGuide_ReplicaDataUpdate_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "DeleteData",
+			Handler:       _RouteGuide_DeleteData_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

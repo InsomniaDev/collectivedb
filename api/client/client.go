@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -92,19 +91,21 @@ func DataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 		log.Fatalf("stream.RecordRoute failed: %v", err)
 	}
 
-	for {
-		data := <-dataChan
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				return err
+	go func() {
+		for {
+			data := <-dataChan
+			if data == nil {
+				if err := stream.CloseSend(); err != nil {
+					log.Println(err)
+				}
+				break
 			}
-			break
-		}
 
-		if err := stream.Send(data); err != nil {
-			return fmt.Errorf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			if err := stream.Send(data); err != nil {
+				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			}
 		}
-	}
+	}()
 
 	return nil
 }
@@ -135,7 +136,7 @@ func GetData(ipAddress *string, data *proto.Data) (*proto.Data, error) {
 
 // DeleteData
 // Will take an array of data fields and have them deleted from the provided ipaddress
-func DeleteData(ipAddress *string, data *proto.DataArray) error {
+func DeleteData(ipAddress *string, dataChan <-chan *proto.Data) error {
 	// Setup the client
 	connOpts := getConnectionOptions(ipAddress)
 	conn, err := grpc.Dial(*ipAddress, *connOpts...)
@@ -147,13 +148,29 @@ func DeleteData(ipAddress *string, data *proto.DataArray) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	stream, err := client.DeleteData(ctx)
 
-	deleted, err := client.DeleteData(ctx, data)
-	if !deleted.UpdatedSuccessfully || err != nil {
-		return err
-	} else {
-		return nil
+	if err != nil {
+		log.Fatalf("stream.RecordRoute failed: %v", err)
 	}
+
+	go func() {
+		for {
+			data := <-dataChan
+			if data == nil {
+				if err := stream.CloseSend(); err != nil {
+					log.Println(err)
+				}
+				break
+			}
+
+			if err := stream.Send(data); err != nil {
+				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+				break
+			}
+		}
+	}()
+	return nil
 }
 
 // DictionaryUpdate
@@ -176,19 +193,22 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 		log.Fatalf("stream.RecordRoute failed: %v", err)
 	}
 
-	for {
-		data := <-dataChan
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				return err
+	go func() {
+		for {
+			data := <-dataChan
+			if data == nil {
+				if err := stream.CloseSend(); err != nil {
+					log.Println(err)
+				}
+				break
 			}
-			break
-		}
 
-		if err := stream.Send(data); err != nil {
-			return fmt.Errorf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			if err := stream.Send(data); err != nil {
+				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+				break
+			}
 		}
-	}
+	}()
 
 	return nil
 }
@@ -213,19 +233,21 @@ func ReplicaUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) error 
 		log.Fatalf("stream.RecordRoute failed: %v", err)
 	}
 
-	for {
-		data := <-dataChan
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				return err
+	go func() {
+		for {
+			data := <-dataChan
+			if data == nil {
+				if err := stream.CloseSend(); err != nil {
+					log.Println(err)
+				}
+				break
 			}
-			break
-		}
 
-		if err := stream.Send(data); err != nil {
-			return fmt.Errorf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			if err := stream.Send(data); err != nil {
+				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			}
 		}
-	}
+	}()
 
 	return nil
 }
@@ -250,19 +272,21 @@ func ReplicaDataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 		log.Fatalf("stream.RecordRoute failed: %v", err)
 	}
 
-	for {
-		data := <-dataChan
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				return err
+	go func() {
+		for {
+			data := <-dataChan
+			if data == nil {
+				if err := stream.CloseSend(); err != nil {
+					log.Println(err)
+				}
+				break
 			}
-			break
-		}
 
-		if err := stream.Send(data); err != nil {
-			return fmt.Errorf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			if err := stream.Send(data); err != nil {
+				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			}
 		}
-	}
+	}()
 
 	return nil
 }

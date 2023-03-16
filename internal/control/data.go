@@ -145,17 +145,18 @@ func deleteDataFromDatabase(key, bucket *string) (bool, error) {
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].DataKey == *key {
 
-			protoData := proto.DataArray{}
-			protoData.Data = append(protoData.Data, &proto.Data{
+			// Send delete command to the first node in the replica group that contains the data
+			deleteData := make(chan *proto.Data)
+			if err := client.DeleteData(&controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, deleteData); err != nil {
+				return false, err
+			}
+
+			deleteData <- &proto.Data{
 				Key:              *key,
 				Database:         *bucket,
 				ReplicaNodeGroup: int32(controller.Data.DataLocations[i].ReplicaNodeGroup),
-			})
-
-			// Send delete command to the first node in the replica group that contains the data
-			if err := client.DeleteData(&controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, &protoData); err != nil {
-				return false, err
 			}
+			deleteData <- nil
 			return true, nil
 		}
 	}
