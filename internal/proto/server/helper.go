@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 

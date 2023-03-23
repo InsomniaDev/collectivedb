@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/insomniadev/collective-db/api/client"
-	"github.com/insomniadev/collective-db/api/proto"
 	"github.com/insomniadev/collective-db/internal/node"
+	"github.com/insomniadev/collective-db/internal/proto"
+	"github.com/insomniadev/collective-db/internal/proto/client"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 

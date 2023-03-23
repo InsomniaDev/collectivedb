@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/insomniadev/collective-db/api/proto"
 	"github.com/insomniadev/collective-db/internal/node"
+	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/types"
 	"google.golang.org/grpc"
 )
@@ -35,7 +35,7 @@ func init() {
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	proto.RegisterRouteGuideServer(grpcServer, NewGrpcServer())
-	grpcServer.Serve(lis)
+	go grpcServer.Serve(lis)
 }
 
 func Test_createUuid(t *testing.T) {

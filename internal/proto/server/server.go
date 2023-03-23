@@ -5,8 +5,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/insomniadev/collective-db/api/proto"
 	"github.com/insomniadev/collective-db/internal/control"
+	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 

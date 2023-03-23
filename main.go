@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/insomniadev/collective-db/api/proto"
-	"github.com/insomniadev/collective-db/api/server"
+	"github.com/insomniadev/collective-db/internal/proto"
+	"github.com/insomniadev/collective-db/internal/proto/server"
 	"github.com/insomniadev/collective-db/resources"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

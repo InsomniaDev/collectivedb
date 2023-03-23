@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/resources"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
