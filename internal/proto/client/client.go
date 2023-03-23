@@ -194,22 +194,20 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 		return err
 	}
 
-	go func() {
-		for {
-			data := <-dataChan
-			if data == nil {
-				if err := stream.CloseSend(); err != nil {
-					log.Println(err)
-				}
-				break
+	for {
+		data := <-dataChan
+		if data == nil {
+			if err := stream.CloseSend(); err != nil {
+				log.Println(err)
 			}
-
-			if err := stream.Send(data); err != nil {
-				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
-				break
-			}
+			break
 		}
-	}()
+
+		if err := stream.Send(data); err != nil {
+			log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			break
+		}
+	}
 
 	return nil
 }

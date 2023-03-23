@@ -68,11 +68,11 @@ func Test_determineIpAddress(t *testing.T) {
 		},
 		{
 			name: "Environment",
-			want: "192-168-1-1.default.pod.cluster.local",
+			want: "192-168-1-1.default.pod.cluster.local:9090",
 		},
 		{
 			name: "Kubernetes",
-			want: "192-168-1-1.default.pod.cluster.local",
+			want: "192-168-1-1.default.pod.cluster.local:9090",
 		},
 	}
 	for _, tt := range tests {
@@ -410,6 +410,8 @@ func TestTerminateReplicas(t *testing.T) {
 func Test_retrieveDataDictionary(t *testing.T) {
 	os.Setenv("COLLECTIVE_MAIN_BROKERS", "")
 
+	node.Collective = types.Controller{}
+	node.Collective.IpAddress = "127.0.0.1:9090"
 	newCluster := []types.ReplicaGroup{
 		{
 			ReplicaNodeGroup:   1,
@@ -417,7 +419,7 @@ func Test_retrieveDataDictionary(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    node.Collective.NodeId,
-					IpAddress: node.Collective.IpAddress,
+					IpAddress: "127.0.0.1:9090",
 				},
 			},
 			FullGroup: false,
@@ -434,6 +436,7 @@ func Test_retrieveDataDictionary(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			node.Collective.IpAddress = "127.0.0.1:9090"
 			retrieveDataDictionary()
 			switch tt.name {
 			case "New_Cluster":

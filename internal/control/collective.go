@@ -170,7 +170,7 @@ func determineIpAddress() string {
 		defer conn.Close()
 
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
-		return localAddr.IP.String()
+		return localAddr.IP.String() + ":9090"
 	}
 
 	// determine if this pod is running in k8s
@@ -216,7 +216,7 @@ func determineIpAddress() string {
 		formattedDnsRoute := strings.Replace(svcValue, ".svc.", ".pod.", -1)
 
 		dnsLocalIp := fmt.Sprintf("%s.%s", formattedIp, formattedDnsRoute)
-		return dnsLocalIp
+		return dnsLocalIp + ":9090"
 	}
 
 	return discoverLocalIp()
@@ -661,9 +661,7 @@ func sendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpda
 
 	// Call the dictionary function before passing the data into the channel
 	// send the update to the first node in the list
-	if err := client.DictionaryUpdate(ipAddress, updateDictionary); err != nil {
-		return err
-	}
+	go client.DictionaryUpdate(ipAddress, updateDictionary)
 
 	updateDictionary <- update
 	updateDictionary <- nil

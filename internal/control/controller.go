@@ -2,9 +2,9 @@ package control
 
 // Thoughts: for the node IP it could be <IP_ADDRESS>/node?<NODE_ID>
 import (
-	"github.com/insomniadev/collective-db/internal/proto/client"
-	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/node"
+	"github.com/insomniadev/collective-db/internal/proto"
+	"github.com/insomniadev/collective-db/internal/proto/client"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
