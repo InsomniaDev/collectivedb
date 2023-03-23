@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/types"
 	"google.golang.org/grpc"
 )
@@ -95,7 +96,7 @@ func Test_determineIpAddress(t *testing.T) {
 
 func Test_determineReplicas(t *testing.T) {
 
-	controller.Data.CollectiveNodes = []types.ReplicaGroup{
+	node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
 		{
 			ReplicaNodeGroup: 1,
 			ReplicaNodes: []types.Node{
@@ -147,7 +148,7 @@ func Test_determineReplicas(t *testing.T) {
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "2")
 			case "Replicas":
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "2")
-				controller.Data.CollectiveNodes[0].FullGroup = false
+				node.Collective.Data.CollectiveNodes[0].FullGroup = false
 			case "Failed":
 				os.Setenv("COLLECTIVE_REPLICA_COUNT", "NAN")
 			}
@@ -212,7 +213,7 @@ func Test_distributeData(t *testing.T) {
 }
 
 func Test_addToDataDictionary(t *testing.T) {
-	controller.Data.DataLocations = []types.Data{
+	node.Collective.Data.DataLocations = []types.Data{
 		{
 			ReplicaNodeGroup: 1,
 			DataKey:          "1",
@@ -270,7 +271,7 @@ func Test_addToDataDictionary(t *testing.T) {
 func Test_retrieveFromDataDictionary(t *testing.T) {
 	key := "1"
 	doesntExistKey := "2"
-	controller.Data.DataLocations = []types.Data{
+	node.Collective.Data.DataLocations = []types.Data{
 		{
 			ReplicaNodeGroup: 1,
 			DataKey:          key,
@@ -294,7 +295,7 @@ func Test_retrieveFromDataDictionary(t *testing.T) {
 			args: args{
 				key: &key,
 			},
-			wantData: controller.Data.DataLocations[0],
+			wantData: node.Collective.Data.DataLocations[0],
 		},
 		{
 			name: "Doesn't Exist",
@@ -415,8 +416,8 @@ func Test_retrieveDataDictionary(t *testing.T) {
 			SecondaryNodeGroup: 0,
 			ReplicaNodes: []types.Node{
 				{
-					NodeId:    controller.NodeId,
-					IpAddress: controller.IpAddress,
+					NodeId:    node.Collective.NodeId,
+					IpAddress: node.Collective.IpAddress,
 				},
 			},
 			FullGroup: false,
@@ -436,8 +437,8 @@ func Test_retrieveDataDictionary(t *testing.T) {
 			retrieveDataDictionary()
 			switch tt.name {
 			case "New_Cluster":
-				if !reflect.DeepEqual(controller.Data.CollectiveNodes, newCluster) {
-					t.Errorf("retrieveDataDictionary() got = %v, want %v", controller.Data.CollectiveNodes, newCluster)
+				if !reflect.DeepEqual(node.Collective.Data.CollectiveNodes, newCluster) {
+					t.Errorf("retrieveDataDictionary() got = %v, want %v", node.Collective.Data.CollectiveNodes, newCluster)
 				}
 			}
 		})

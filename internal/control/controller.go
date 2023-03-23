@@ -4,6 +4,7 @@ package control
 import (
 	"github.com/insomniadev/collective-db/api/client"
 	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
@@ -29,13 +30,13 @@ func init() {
 	// 	return
 	// }
 
-	controller.NodeId = createUuid()
+	node.Collective.NodeId = createUuid()
 
 	// Utilizes Environment variables:
 	//	COLLECTIVE_HOST_URL - will set this as it's IP address with no additional logic
 	// 	COLLECTIVE_IP - will use this IP but still configure for K8S
 	// 	COLLECTIVE_RESOLVER_FILE - will override default /etc/resolv.conf file
-	controller.IpAddress = determineIpAddress()
+	node.Collective.IpAddress = determineIpAddress()
 
 	// Pull the collective database from the master node
 	// Utilizes Environment variables:
@@ -52,7 +53,7 @@ func init() {
 //
 // THOUGHTS: If this server is up then it should be running, should this be where it has been synced with other nodes?
 func IsActive() bool {
-	return active
+	return node.Active
 }
 
 // Deactivate
@@ -66,7 +67,7 @@ func Deactivate() bool {
 //
 //	Returns info on this node
 func NodeInfo() *types.Controller {
-	return &controller
+	return &node.Collective
 }
 
 // CollectiveUpdate
@@ -114,15 +115,15 @@ func CollectiveUpdate(update *types.DataUpdate) {
 
 	// Send the data onward
 	// Update the replicas in this replica group
-	for i := range controller.ReplicaNodes {
+	for i := range node.Collective.ReplicaNodes {
 		// Let's not send to ourselves here
-		if controller.ReplicaNodes[i].NodeId != controller.NodeId {
+		if node.Collective.ReplicaNodes[i].NodeId != node.Collective.NodeId {
 			// Send the data to the replica node
 
 			// Send the data to the api endpoint for the ReplicaUpdate function - ReplicaUpdate rpc
 			// initialize first call
 			updateDictionary := make(chan *proto.DataUpdates)
-			client.ReplicaUpdate(&controller.ReplicaNodes[i].IpAddress, updateDictionary)
+			client.ReplicaUpdate(&node.Collective.ReplicaNodes[i].IpAddress, updateDictionary)
 
 			// Send the data into the dictionary update function
 			updateDictionary <- protoData
@@ -131,19 +132,19 @@ func CollectiveUpdate(update *types.DataUpdate) {
 	}
 
 	// Send to the next replica group in the list
-	for i := range controller.Data.CollectiveNodes {
+	for i := range node.Collective.Data.CollectiveNodes {
 		// Go to where this node group is in the array
-		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
+		if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == node.Collective.ReplicaNodeGroup {
 			// Send to the next replica group in the list
 			// 	Check that there is another element in the array
 			//  Confirm that we aren't going to send to the replicanodegroup that started this request
-			if len(controller.Data.CollectiveNodes) >= i+2 && active &&
-				(controller.Data.CollectiveNodes[i].ReplicaNodeGroup != update.DataUpdate.UpdateData.ReplicaNodeGroup ||
-					controller.Data.CollectiveNodes[i].ReplicaNodeGroup != update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup) {
+			if len(node.Collective.Data.CollectiveNodes) >= i+2 && node.Active &&
+				(node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup != update.DataUpdate.UpdateData.ReplicaNodeGroup ||
+					node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup != update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup) {
 
 				// initialize first call
 				updateDictionary := make(chan *proto.DataUpdates)
-				client.DictionaryUpdate(&controller.Data.CollectiveNodes[i+1].ReplicaNodes[0].IpAddress, updateDictionary)
+				client.DictionaryUpdate(&node.Collective.Data.CollectiveNodes[i+1].ReplicaNodes[0].IpAddress, updateDictionary)
 
 				// Send the data into the dictionary update function
 				updateDictionary <- protoData

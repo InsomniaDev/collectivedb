@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
@@ -194,7 +195,7 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 	storeDataInDatabase(&key, &bucket, &data, false, 0)
 	count := 0
 
-	controller.Data.DataLocations = []types.Data{
+	node.Collective.Data.DataLocations = []types.Data{
 		{
 			ReplicaNodeGroup: 1,
 			DataKey:          "test",
@@ -205,7 +206,7 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 		},
 	}
 
-	controller.ReplicaNodeGroup = 1
+	node.Collective.ReplicaNodeGroup = 1
 
 	type args struct {
 		inputData chan *types.StoredData

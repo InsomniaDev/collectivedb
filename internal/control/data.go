@@ -8,6 +8,7 @@ import (
 	"github.com/insomniadev/collective-db/api/client"
 	"github.com/insomniadev/collective-db/api/proto"
 	database "github.com/insomniadev/collective-db/internal/database"
+	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
@@ -48,19 +49,19 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 	dataVolume := retrieveFromDataDictionary(key)
 
 	// If the data doesn't exist yet, but a key was provided OR data exists and needs to be updated OR this data was sent in with a secondaryNodeGroup equal to this one
-	if dataVolume.DataKey == "" || dataVolume.ReplicaNodeGroup == controller.ReplicaNodeGroup || controller.ReplicaNodeGroup == secondaryNodeGroup {
+	if dataVolume.DataKey == "" || dataVolume.ReplicaNodeGroup == node.Collective.ReplicaNodeGroup || node.Collective.ReplicaNodeGroup == secondaryNodeGroup {
 		// Distribute the data across the collective
 		return updateAndDistribute(), key
 	}
 
 	// Update the data on the different node
-	for i := range controller.Data.CollectiveNodes {
-		if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == dataVolume.ReplicaNodeGroup {
+	for i := range node.Collective.Data.CollectiveNodes {
+		if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == dataVolume.ReplicaNodeGroup {
 			// Send the data to the leader for that replica group - DataUpdate rpc
-			log.Println(controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress)
+			log.Println(node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress)
 
 			protoData := make(chan *proto.Data)
-			err := client.ReplicaDataUpdate(&controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, protoData)
+			err := client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, protoData)
 
 			protoData <- &proto.Data{
 				Key:              *key,
@@ -84,13 +85,13 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 // retrieveAllReplicaData
 // Will return with all of the replicated data
 func retrieveAllReplicaData(inputData chan<- *types.StoredData) {
-	for i := range controller.Data.DataLocations {
-		if controller.Data.DataLocations[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
-			if exists, data := retrieveDataFromDatabase(&controller.Data.DataLocations[i].DataKey, &controller.Data.DataLocations[i].Database); exists {
+	for i := range node.Collective.Data.DataLocations {
+		if node.Collective.Data.DataLocations[i].ReplicaNodeGroup == node.Collective.ReplicaNodeGroup {
+			if exists, data := retrieveDataFromDatabase(&node.Collective.Data.DataLocations[i].DataKey, &node.Collective.Data.DataLocations[i].Database); exists {
 				inputData <- &types.StoredData{
-					ReplicaNodeGroup: controller.ReplicaNodeGroup,
-					DataKey:          controller.Data.DataLocations[i].DataKey,
-					Database:         controller.Data.DataLocations[i].Database,
+					ReplicaNodeGroup: node.Collective.ReplicaNodeGroup,
+					DataKey:          node.Collective.Data.DataLocations[i].DataKey,
+					Database:         node.Collective.Data.DataLocations[i].Database,
 					Data:             *data,
 				}
 			}
@@ -107,17 +108,17 @@ func retrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 
 	// The data does not exist on this node
 	// Determine what node the data exists on
-	for i := range controller.Data.DataLocations {
-		if controller.Data.DataLocations[i].DataKey == *key {
+	for i := range node.Collective.Data.DataLocations {
+		if node.Collective.Data.DataLocations[i].DataKey == *key {
 
 			// Go retrieve the data and then return it here - GetData rpc
-			for j := range controller.Data.CollectiveNodes {
-				if controller.Data.CollectiveNodes[j].ReplicaNodeGroup == controller.Data.DataLocations[i].ReplicaNodeGroup {
+			for j := range node.Collective.Data.CollectiveNodes {
+				if node.Collective.Data.CollectiveNodes[j].ReplicaNodeGroup == node.Collective.Data.DataLocations[i].ReplicaNodeGroup {
 
-					data, err := client.GetData(&controller.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, &proto.Data{
+					data, err := client.GetData(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, &proto.Data{
 						Key:              *key,
 						Database:         *bucket,
-						ReplicaNodeGroup: int32(controller.Data.DataLocations[i].ReplicaNodeGroup),
+						ReplicaNodeGroup: int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
 					})
 					if err != nil {
 						return false, nil
@@ -143,19 +144,19 @@ func deleteDataFromDatabase(key, bucket *string) (bool, error) {
 
 	// The data does not exist on this node
 	// Determine what node the data exists on
-	for i := range controller.Data.DataLocations {
-		if controller.Data.DataLocations[i].DataKey == *key {
+	for i := range node.Collective.Data.DataLocations {
+		if node.Collective.Data.DataLocations[i].DataKey == *key {
 
 			// Send delete command to the first node in the replica group that contains the data
 			deleteData := make(chan *proto.Data)
-			if err := client.DeleteData(&controller.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, deleteData); err != nil {
+			if err := client.DeleteData(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, deleteData); err != nil {
 				return false, err
 			}
 
 			deleteData <- &proto.Data{
 				Key:              *key,
 				Database:         *bucket,
-				ReplicaNodeGroup: int32(controller.Data.DataLocations[i].ReplicaNodeGroup),
+				ReplicaNodeGroup: int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
 			}
 			deleteData <- nil
 			return true, nil
