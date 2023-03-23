@@ -220,6 +220,48 @@ func determineIpAddress() string {
 	return discoverLocalIp()
 }
 
+// retrieveDataDictionary
+//
+//	gets the master node and pulls in the data dictionary to start the application up
+func retrieveDataDictionary() {
+
+	// TODO: implement the following logic
+	collectiveBrokers := []string{}
+	collectiveMainBrokers := os.Getenv("COLLECTIVE_MAIN_BROKERS")
+	if collectiveMainBrokers != "" {
+		collectiveBrokers = strings.Split(collectiveMainBrokers, ",")
+	}
+	log.Println(collectiveBrokers)
+
+	// if COLLECTIVE_MAIN_BROKERS is populated, then use first
+	if len(collectiveBrokers) > 0 {
+		// TODO: Cycle through brokers to pull in the dictionary data - need to create all of the functions
+	} else if controller.KubeDeployed {
+		// TODO: Pull data from any other pod that is in this current service group
+	} else {
+		// Create a new collective cluster
+		controller.Data.CollectiveNodes = []ReplicaGroup{
+			{
+				ReplicaNodeGroup:   1,
+				SecondaryNodeGroup: 0,
+				ReplicaNodes: []Node{
+					{
+						NodeId:    controller.NodeId,
+						IpAddress: controller.IpAddress,
+					},
+				},
+				FullGroup: false,
+			},
+		}
+		controller.ReplicaNodes = []Node{
+			{
+				NodeId:    controller.NodeId,
+				IpAddress: controller.IpAddress,
+			},
+		}
+	}
+}
+
 // syncData
 //
 //	is responsible for syncing data between nodes once an application starts up
@@ -297,6 +339,11 @@ func determineReplicas() (err error) {
 	// 		NO - Create new group
 	// 				Set the secondaryNodeGroup immediately
 
+	// If there is only one node in the cluster, then there is nothing to work through, so just return
+	if len(controller.Data.CollectiveNodes) == 1 && len(controller.Data.CollectiveNodes[0].ReplicaNodes) == 1 {
+		return nil
+	}
+
 	// Cycle through the collective replica groups and determine if there is a new group
 	for _, rg := range controller.Data.CollectiveNodes {
 		// if it is not a full replica group
@@ -344,7 +391,7 @@ func determineReplicas() (err error) {
 			}
 
 			// Update the DataDictionary that this node is now part of the collective
-			sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+			if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 				ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 					Update:     true,
 					UpdateType: UPDATE,
@@ -355,7 +402,9 @@ func determineReplicas() (err error) {
 						SecondaryNodeGroup: int32(rg.SecondaryNodeGroup),
 					},
 				},
-			})
+			}); err != nil {
+				return err
+			}
 
 			// start pulling in the data required
 			go syncData()
@@ -368,7 +417,7 @@ func determineReplicas() (err error) {
 	// If all groups are full then we should immediately create a new group,
 	// 		the new group needs to have the secondaryNodeGroup set
 	randIndex := rand.Intn(len(controller.Data.CollectiveNodes))
-	sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+	if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 			Update:     true,
 			UpdateType: NEW,
@@ -382,7 +431,9 @@ func determineReplicas() (err error) {
 				SecondaryNodeGroup: int32(controller.Data.CollectiveNodes[randIndex].ReplicaNodeGroup),
 			},
 		},
-	})
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -437,7 +488,7 @@ func TerminateReplicas() (err error) {
 		// Do a collective update to set the secondaryNodeGroup
 		// 		Call the dictionary function before passing the data into the channel
 		// 		send the update to the first node in the list - the master node
-		sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+		if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 				Update:     true,
 				UpdateType: UPDATE,
@@ -448,7 +499,9 @@ func TerminateReplicas() (err error) {
 					SecondaryNodeGroup: int32(controller.Data.CollectiveNodes[randIndex].ReplicaNodeGroup),
 				},
 			},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	// Determine if this is the last node removed from a replica node group and have all the data belong to the secondaryNodeGroup now
@@ -478,7 +531,7 @@ func TerminateReplicas() (err error) {
 		updateDictionary <- nil
 
 		// Remove this node from the collective database
-		sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+		if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 				Update:     true,
 				UpdateType: DELETE,
@@ -489,7 +542,9 @@ func TerminateReplicas() (err error) {
 					SecondaryNodeGroup: 0,
 				},
 			},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -557,27 +612,30 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 					}
 				}
 			}
-		}
 
-		// Only update the data dictionary with this data if it was not sent here as part of the secondaryNodeGroup
-		if secondaryNodeGroup != controller.ReplicaNodeGroup {
+			// Only update the data dictionary with this data if it was not sent here as part of the secondaryNodeGroup
+			if secondaryNodeGroup != controller.ReplicaNodeGroup {
 
-			// Add this node to the DataDictionary
-			updateType := addToDataDictionary(newData)
+				// Add this node to the DataDictionary
+				updateType := addToDataDictionary(newData)
 
-			sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
-				CollectiveUpdate: &proto.CollectiveDataUpdate{
-					Update:     true,
-					UpdateType: int32(updateType),
-					Data: &proto.CollectiveData{
-						ReplicaNodeGroup:  int32(newData.ReplicaNodeGroup),
-						DataKey:           newData.DataKey,
-						Database:          newData.Database,
-						ReplicatedNodeIds: newData.ReplicatedNodeIds,
+				if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+					CollectiveUpdate: &proto.CollectiveDataUpdate{
+						Update:     true,
+						UpdateType: int32(updateType),
+						Data: &proto.CollectiveData{
+							ReplicaNodeGroup:  int32(newData.ReplicaNodeGroup),
+							DataKey:           newData.DataKey,
+							Database:          newData.Database,
+							ReplicatedNodeIds: newData.ReplicatedNodeIds,
+						},
 					},
-				},
-			})
+				}); err != nil {
+					return err
+				}
+			}
 		}
+
 	}
 
 	return nil
@@ -593,7 +651,7 @@ func removeFromDictionarySlice[T collective](s []T, i int) []T {
 // sendClientUpdateDictionaryRequest
 //
 // extracted function that is used to send the update without all of the additional boilerplate code everywhere
-func sendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpdates) {
+func sendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpdates) error {
 	// TODO: Add unit test
 
 	// Create the channel
@@ -601,8 +659,11 @@ func sendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpda
 
 	// Call the dictionary function before passing the data into the channel
 	// send the update to the first node in the list
-	client.DictionaryUpdate(ipAddress, updateDictionary)
+	if err := client.DictionaryUpdate(ipAddress, updateDictionary); err != nil {
+		return err
+	}
 
 	updateDictionary <- update
 	updateDictionary <- nil
+	return nil
 }

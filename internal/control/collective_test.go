@@ -1,10 +1,40 @@
 package control
 
 import (
+	"log"
+	"net"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
+
+	"github.com/insomniadev/collective-db/api/proto"
+	"google.golang.org/grpc"
 )
+
+func init() {
+	// Server type for working with the gRPC server
+	type grpcServerType struct {
+		proto.UnimplementedRouteGuideServer
+
+		dictionary_mu sync.Mutex
+	}
+
+	// Create and return the gRPC server
+	NewGrpcServer := func() *grpcServerType {
+		s := &grpcServerType{}
+		return s
+	}
+
+	lis, err := net.Listen("tcp", "localhost:9090")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	var opts []grpc.ServerOption
+	grpcServer := grpc.NewServer(opts...)
+	proto.RegisterRouteGuideServer(grpcServer, NewGrpcServer())
+	grpcServer.Serve(lis)
+}
 
 func Test_createUuid(t *testing.T) {
 	tests := []struct {
@@ -70,15 +100,15 @@ func Test_determineReplicas(t *testing.T) {
 			ReplicaNodes: []Node{
 				{
 					NodeId:    "1",
-					IpAddress: "1",
+					IpAddress: "127.0.0.1:9090",
 				},
 				{
 					NodeId:    "2",
-					IpAddress: "2",
+					IpAddress: "127.0.0.1:9090",
 				},
 				{
 					NodeId:    "3",
-					IpAddress: "3",
+					IpAddress: "127.0.0.1:9090",
 				},
 			},
 			FullGroup: true,
@@ -370,6 +400,44 @@ func TestTerminateReplicas(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := TerminateReplicas(); (err != nil) != tt.wantErr {
 				t.Errorf("TerminateReplicas() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_retrieveDataDictionary(t *testing.T) {
+	os.Setenv("COLLECTIVE_MAIN_BROKERS", "")
+
+	newCluster := []ReplicaGroup{
+		{
+			ReplicaNodeGroup:   1,
+			SecondaryNodeGroup: 0,
+			ReplicaNodes: []Node{
+				{
+					NodeId:    controller.NodeId,
+					IpAddress: controller.IpAddress,
+				},
+			},
+			FullGroup: false,
+		},
+	}
+
+	tests := []struct {
+		name string
+	}{
+		// TODO: Add test cases.
+		{
+			name: "New_Cluster",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			retrieveDataDictionary()
+			switch tt.name {
+			case "New_Cluster":
+				if !reflect.DeepEqual(controller.Data.CollectiveNodes, newCluster) {
+					t.Errorf("retrieveDataDictionary() got = %v, want %v", controller.Data.CollectiveNodes, newCluster)
+				}
 			}
 		})
 	}

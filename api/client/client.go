@@ -190,7 +190,8 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 	stream, err := client.DictionaryUpdate(ctx)
 
 	if err != nil {
-		log.Fatalf("stream.RecordRoute failed: %v", err)
+		log.Printf("stream.RecordRoute failed: %v", err)
+		return err
 	}
 
 	go func() {
