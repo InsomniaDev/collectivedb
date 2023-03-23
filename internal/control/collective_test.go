@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/internal/types"
 	"google.golang.org/grpc"
 )
 
@@ -94,10 +95,10 @@ func Test_determineIpAddress(t *testing.T) {
 
 func Test_determineReplicas(t *testing.T) {
 
-	controller.Data.CollectiveNodes = []ReplicaGroup{
+	controller.Data.CollectiveNodes = []types.ReplicaGroup{
 		{
 			ReplicaNodeGroup: 1,
-			ReplicaNodes: []Node{
+			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "1",
 					IpAddress: "127.0.0.1:9090",
@@ -211,7 +212,7 @@ func Test_distributeData(t *testing.T) {
 }
 
 func Test_addToDataDictionary(t *testing.T) {
-	controller.Data.DataLocations = []Data{
+	controller.Data.DataLocations = []types.Data{
 		{
 			ReplicaNodeGroup: 1,
 			DataKey:          "1",
@@ -223,7 +224,7 @@ func Test_addToDataDictionary(t *testing.T) {
 	}
 
 	type args struct {
-		dataToInsert Data
+		dataToInsert types.Data
 	}
 	tests := []struct {
 		name           string
@@ -234,25 +235,25 @@ func Test_addToDataDictionary(t *testing.T) {
 		{
 			name: "Updated",
 			args: args{
-				dataToInsert: Data{
+				dataToInsert: types.Data{
 					ReplicaNodeGroup: 2,
 					DataKey:          "1",
 					Database:         "test",
 				},
 			},
-			wantUpdateType: UPDATE,
+			wantUpdateType: types.UPDATE,
 			wantUpdated:    true,
 		},
 		{
 			name: "New",
 			args: args{
-				dataToInsert: Data{
+				dataToInsert: types.Data{
 					ReplicaNodeGroup: 2,
 					DataKey:          "2",
 					Database:         "test",
 				},
 			},
-			wantUpdateType: NEW,
+			wantUpdateType: types.NEW,
 			wantUpdated:    false,
 		},
 	}
@@ -269,7 +270,7 @@ func Test_addToDataDictionary(t *testing.T) {
 func Test_retrieveFromDataDictionary(t *testing.T) {
 	key := "1"
 	doesntExistKey := "2"
-	controller.Data.DataLocations = []Data{
+	controller.Data.DataLocations = []types.Data{
 		{
 			ReplicaNodeGroup: 1,
 			DataKey:          key,
@@ -286,7 +287,7 @@ func Test_retrieveFromDataDictionary(t *testing.T) {
 	tests := []struct {
 		name     string
 		args     args
-		wantData Data
+		wantData types.Data
 	}{
 		{
 			name: "Exists",
@@ -300,7 +301,7 @@ func Test_retrieveFromDataDictionary(t *testing.T) {
 			args: args{
 				key: &doesntExistKey,
 			},
-			wantData: Data{},
+			wantData: types.Data{},
 		},
 	}
 	for _, tt := range tests {
@@ -314,18 +315,18 @@ func Test_retrieveFromDataDictionary(t *testing.T) {
 
 func Test_removeFromDictionarySlice(t *testing.T) {
 	type args struct {
-		s []ReplicaGroup
+		s []types.ReplicaGroup
 		i int
 	}
 	tests := []struct {
 		name string
 		args args
-		want []ReplicaGroup
+		want []types.ReplicaGroup
 	}{
 		{
 			name: "Remove an element",
 			args: args{
-				s: []ReplicaGroup{
+				s: []types.ReplicaGroup{
 					{
 						ReplicaNodeGroup: 1,
 					},
@@ -338,7 +339,7 @@ func Test_removeFromDictionarySlice(t *testing.T) {
 				},
 				i: 1,
 			},
-			want: []ReplicaGroup{
+			want: []types.ReplicaGroup{
 				{
 					ReplicaNodeGroup: 1,
 				},
@@ -350,14 +351,14 @@ func Test_removeFromDictionarySlice(t *testing.T) {
 		{
 			name: "An empty array",
 			args: args{
-				s: []ReplicaGroup{
+				s: []types.ReplicaGroup{
 					{
 						ReplicaNodeGroup: 1,
 					},
 				},
 				i: 0,
 			},
-			want: []ReplicaGroup{},
+			want: []types.ReplicaGroup{},
 		},
 	}
 	for _, tt := range tests {
@@ -408,11 +409,11 @@ func TestTerminateReplicas(t *testing.T) {
 func Test_retrieveDataDictionary(t *testing.T) {
 	os.Setenv("COLLECTIVE_MAIN_BROKERS", "")
 
-	newCluster := []ReplicaGroup{
+	newCluster := []types.ReplicaGroup{
 		{
 			ReplicaNodeGroup:   1,
 			SecondaryNodeGroup: 0,
-			ReplicaNodes: []Node{
+			ReplicaNodes: []types.Node{
 				{
 					NodeId:    controller.NodeId,
 					IpAddress: controller.IpAddress,

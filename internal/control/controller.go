@@ -4,6 +4,7 @@ package control
 import (
 	"github.com/insomniadev/collective-db/api/client"
 	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/internal/types"
 )
 
 // Pull from local database, if doesn't exist then
@@ -64,14 +65,14 @@ func Deactivate() bool {
 // NodeInfo
 //
 //	Returns info on this node
-func NodeInfo() *Controller {
+func NodeInfo() *types.Controller {
 	return &controller
 }
 
 // CollectiveUpdate
 //
 //	Will update this node with the incoming collective information from the other nodes
-func CollectiveUpdate(update *DataUpdate) {
+func CollectiveUpdate(update *types.DataUpdate) {
 	// Update this node with the incoming information
 	// Send the data to the first url in the next replica group
 	// Send the new data to all replicas in this replica group
@@ -158,7 +159,7 @@ func CollectiveUpdate(update *DataUpdate) {
 // ReplicaSyncRequest
 //
 //	Node that became part of this replica group requires all of the data
-func ReplicaSyncRequest(storedData chan<- *StoredData) {
+func ReplicaSyncRequest(storedData chan<- *types.StoredData) {
 	retrieveAllReplicaData(storedData)
 }
 
@@ -166,7 +167,7 @@ func ReplicaSyncRequest(storedData chan<- *StoredData) {
 //
 //	Will update this node with the data coming from another replica related to collective data
 //	This update call will not attempt to continue distributing the update
-func ReplicaUpdate(update *DataUpdate) {
+func ReplicaUpdate(update *types.DataUpdate) {
 
 	// Update the collective with the new information
 	collectiveUpdate(update)

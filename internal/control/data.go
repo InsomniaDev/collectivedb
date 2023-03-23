@@ -8,6 +8,7 @@ import (
 	"github.com/insomniadev/collective-db/api/client"
 	"github.com/insomniadev/collective-db/api/proto"
 	database "github.com/insomniadev/collective-db/internal/database"
+	"github.com/insomniadev/collective-db/internal/types"
 )
 
 // storeDataInDatabase
@@ -82,11 +83,11 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 
 // retrieveAllReplicaData
 // Will return with all of the replicated data
-func retrieveAllReplicaData(inputData chan<- *StoredData) {
+func retrieveAllReplicaData(inputData chan<- *types.StoredData) {
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].ReplicaNodeGroup == controller.ReplicaNodeGroup {
 			if exists, data := retrieveDataFromDatabase(&controller.Data.DataLocations[i].DataKey, &controller.Data.DataLocations[i].Database); exists {
-				inputData <- &StoredData{
+				inputData <- &types.StoredData{
 					ReplicaNodeGroup: controller.ReplicaNodeGroup,
 					DataKey:          controller.Data.DataLocations[i].DataKey,
 					Database:         controller.Data.DataLocations[i].Database,

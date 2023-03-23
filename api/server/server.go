@@ -7,6 +7,7 @@ import (
 
 	"github.com/insomniadev/collective-db/api/proto"
 	"github.com/insomniadev/collective-db/internal/control"
+	"github.com/insomniadev/collective-db/internal/types"
 )
 
 // Server type for working with the gRPC server
@@ -51,14 +52,14 @@ func (s *grpcServer) ReplicaUpdate(stream proto.RouteGuide_ReplicaUpdateServer) 
 // Will send a request to the server to pull in all of the data to the newly joined node
 func (s *grpcServer) SyncDataRequest(syncIpAddress *proto.SyncIp, stream proto.RouteGuide_SyncDataRequestServer) (err error) {
 	// Make a channel that the process can yield the discovered data through
-	storedData := make(chan *control.StoredData)
+	storedData := make(chan *types.StoredData)
 
 	// Setup a process to wait for the returned data
 	var wg sync.WaitGroup
 
 	// Go through and return the data as it is discovered
 	wg.Add(1)
-	go func(chan *control.StoredData) {
+	go func(chan *types.StoredData) {
 		defer wg.Done()
 		for {
 			data := <-storedData

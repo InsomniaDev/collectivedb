@@ -1,8 +1,4 @@
-package control
-
-import (
-	"sync"
-)
+package types
 
 // Main Controller struct
 type Controller struct {
@@ -16,7 +12,7 @@ type Controller struct {
 	Data               DataDictionary `json:"data"`               // Location of all the keys to nodes
 }
 
-type collective interface {
+type Collective interface {
 	ReplicaGroup | Data
 }
 
@@ -56,13 +52,6 @@ type StoredData struct {
 	Database         string `json:"database"`
 	Data             []byte `json:"data"`
 }
-
-var (
-	active     bool
-	controller Controller
-
-	collectiveMemoryMutex sync.Mutex
-)
 
 // Update Data Type
 type DataUpdate struct {

@@ -11,15 +11,24 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/insomniadev/collective-db/api/client"
 	"github.com/insomniadev/collective-db/api/proto"
+	"github.com/insomniadev/collective-db/internal/types"
 )
 
 var (
 	replicaCount int
 	err          error
+)
+
+var (
+	active     bool
+	controller types.Controller
+
+	collectiveMemoryMutex sync.Mutex
 )
 
 func init() {
@@ -41,7 +50,7 @@ func createUuid() string {
 
 // retrieveFromDataDictionary
 // Will retrieve the key from the dictionary if it exists
-func retrieveFromDataDictionary(key *string) (data Data) {
+func retrieveFromDataDictionary(key *string) (data types.Data) {
 
 	for i := range controller.Data.DataLocations {
 		if controller.Data.DataLocations[i].DataKey == *key {
@@ -55,7 +64,7 @@ func retrieveFromDataDictionary(key *string) (data Data) {
 // addToDataDictionary
 //
 //	Will add the data structure to the dictionary, or update the location
-func addToDataDictionary(dataToInsert Data) (updateType int) {
+func addToDataDictionary(dataToInsert types.Data) (updateType int) {
 	collectiveMemoryMutex.Lock()
 
 	for i := range controller.Data.DataLocations {
@@ -65,7 +74,7 @@ func addToDataDictionary(dataToInsert Data) (updateType int) {
 
 			// Unlock and return
 			collectiveMemoryMutex.Unlock()
-			return UPDATE
+			return types.UPDATE
 		}
 	}
 
@@ -74,23 +83,23 @@ func addToDataDictionary(dataToInsert Data) (updateType int) {
 
 	// Unlock and return
 	collectiveMemoryMutex.Unlock()
-	return NEW
+	return types.NEW
 }
 
 // collectiveUpdate
 //
 // This will go through and update the collective memory, not touching the actual data
-func collectiveUpdate(update *DataUpdate) {
+func collectiveUpdate(update *types.DataUpdate) {
 	collectiveMemoryMutex.Lock()
 
 	// If this is a data update
 	if update.DataUpdate.Update {
 		// Update the data dictionary
 		switch update.DataUpdate.UpdateType {
-		case NEW:
+		case types.NEW:
 			// Adds the new element to the end of the array
 			controller.Data.DataLocations = append(controller.Data.DataLocations, update.DataUpdate.UpdateData)
-		case UPDATE:
+		case types.UPDATE:
 			// Updates the element where it is
 			for i := range controller.Data.DataLocations {
 				if controller.Data.DataLocations[i].DataKey == update.DataUpdate.UpdateData.DataKey {
@@ -98,7 +107,7 @@ func collectiveUpdate(update *DataUpdate) {
 					break
 				}
 			}
-		case DELETE:
+		case types.DELETE:
 			// Deletes the element from the array
 			for i := range controller.Data.DataLocations {
 				if controller.Data.DataLocations[i].DataKey == update.DataUpdate.UpdateData.DataKey {
@@ -110,10 +119,10 @@ func collectiveUpdate(update *DataUpdate) {
 	} else if update.ReplicaUpdate.Update {
 		// Update the data dictionary
 		switch update.ReplicaUpdate.UpdateType {
-		case NEW:
+		case types.NEW:
 			// Adds the new element to the end of the array
 			controller.Data.CollectiveNodes = append(controller.Data.CollectiveNodes, update.ReplicaUpdate.UpdateReplica)
-		case UPDATE:
+		case types.UPDATE:
 			// Updates the element where it is
 			for i := range controller.Data.CollectiveNodes {
 				if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup {
@@ -121,7 +130,7 @@ func collectiveUpdate(update *DataUpdate) {
 					break
 				}
 			}
-		case DELETE:
+		case types.DELETE:
 			// Deletes the element from the array
 			for i := range controller.Data.CollectiveNodes {
 				if controller.Data.CollectiveNodes[i].ReplicaNodeGroup == update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup {
@@ -240,11 +249,11 @@ func retrieveDataDictionary() {
 		// TODO: Pull data from any other pod that is in this current service group
 	} else {
 		// Create a new collective cluster
-		controller.Data.CollectiveNodes = []ReplicaGroup{
+		controller.Data.CollectiveNodes = []types.ReplicaGroup{
 			{
 				ReplicaNodeGroup:   1,
 				SecondaryNodeGroup: 0,
-				ReplicaNodes: []Node{
+				ReplicaNodes: []types.Node{
 					{
 						NodeId:    controller.NodeId,
 						IpAddress: controller.IpAddress,
@@ -253,7 +262,7 @@ func retrieveDataDictionary() {
 				FullGroup: false,
 			},
 		}
-		controller.ReplicaNodes = []Node{
+		controller.ReplicaNodes = []types.Node{
 			{
 				NodeId:    controller.NodeId,
 				IpAddress: controller.IpAddress,
@@ -357,7 +366,7 @@ func determineReplicas() (err error) {
 			// Update this controller data with the replication group
 			controller.ReplicaNodeGroup = rg.ReplicaNodeGroup
 			controller.ReplicaNodes = rg.ReplicaNodes
-			controller.ReplicaNodes = append(controller.ReplicaNodes, Node{
+			controller.ReplicaNodes = append(controller.ReplicaNodes, types.Node{
 				NodeId:    controller.NodeId,
 				IpAddress: controller.IpAddress,
 			})
@@ -394,7 +403,7 @@ func determineReplicas() (err error) {
 			if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 				ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 					Update:     true,
-					UpdateType: UPDATE,
+					UpdateType: types.UPDATE,
 					UpdateReplica: &proto.UpdateReplica{
 						ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
 						FullGroup:          fullGroup,
@@ -420,7 +429,7 @@ func determineReplicas() (err error) {
 	if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 			Update:     true,
-			UpdateType: NEW,
+			UpdateType: types.NEW,
 			UpdateReplica: &proto.UpdateReplica{
 				ReplicaNodeGroup: int32(controller.ReplicaNodeGroup),
 				FullGroup:        false,
@@ -455,7 +464,7 @@ func TerminateReplicas() (err error) {
 		client.DataUpdate(&controller.Data.CollectiveNodes[randIndex].ReplicaNodes[0].IpAddress, disperseData)
 
 		// Create channel to retrieve all of the stored data through the retrieveAllReplicaData function
-		replicaData := make(chan *StoredData)
+		replicaData := make(chan *types.StoredData)
 		retrieveAllReplicaData(replicaData)
 		for {
 			if storedData := <-replicaData; storedData != nil {
@@ -491,7 +500,7 @@ func TerminateReplicas() (err error) {
 		if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 				Update:     true,
-				UpdateType: UPDATE,
+				UpdateType: types.UPDATE,
 				UpdateReplica: &proto.UpdateReplica{
 					ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
 					FullGroup:          false,
@@ -518,7 +527,7 @@ func TerminateReplicas() (err error) {
 				updateDictionary <- &proto.DataUpdates{
 					CollectiveUpdate: &proto.CollectiveDataUpdate{
 						Update:     true,
-						UpdateType: UPDATE,
+						UpdateType: types.UPDATE,
 						Data: &proto.CollectiveData{
 							ReplicaNodeGroup: int32(controller.SecondaryNodeGroup),
 							DataKey:          controller.Data.DataLocations[i].DataKey,
@@ -534,7 +543,7 @@ func TerminateReplicas() (err error) {
 		if err := sendClientUpdateDictionaryRequest(&controller.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 				Update:     true,
-				UpdateType: DELETE,
+				UpdateType: types.DELETE,
 				UpdateReplica: &proto.UpdateReplica{
 					ReplicaNodeGroup:   int32(controller.ReplicaNodeGroup),
 					FullGroup:          false,
@@ -556,7 +565,7 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 		return errors.New("invalid parameters")
 	}
 
-	newData := Data{
+	newData := types.Data{
 		ReplicaNodeGroup:  controller.ReplicaNodeGroup,
 		DataKey:           *key,
 		Database:          *bucket,
@@ -643,7 +652,7 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 
 // removeFromDictionarySlice
 // removes the specified index from the slice and returns that slice, this does reorder the array by switching out the elements
-func removeFromDictionarySlice[T collective](s []T, i int) []T {
+func removeFromDictionarySlice[T types.Collective](s []T, i int) []T {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }

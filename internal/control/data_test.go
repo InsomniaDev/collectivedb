@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/insomniadev/collective-db/internal/types"
 )
 
 func Test_storeDataInDatabase(t *testing.T) {
@@ -192,7 +194,7 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 	storeDataInDatabase(&key, &bucket, &data, false, 0)
 	count := 0
 
-	controller.Data.DataLocations = []Data{
+	controller.Data.DataLocations = []types.Data{
 		{
 			ReplicaNodeGroup: 1,
 			DataKey:          "test",
@@ -206,7 +208,7 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 	controller.ReplicaNodeGroup = 1
 
 	type args struct {
-		inputData chan *StoredData
+		inputData chan *types.StoredData
 	}
 	tests := []struct {
 		name string
@@ -215,13 +217,13 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 		{
 			name: "Test successfully sending data",
 			args: args{
-				inputData: make(chan *StoredData),
+				inputData: make(chan *types.StoredData),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			go func(inputData <-chan *StoredData) {
+			go func(inputData <-chan *types.StoredData) {
 				for {
 					data := <-inputData
 					if data != nil {
