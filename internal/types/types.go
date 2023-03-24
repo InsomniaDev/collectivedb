@@ -39,10 +39,9 @@ type DataDictionary struct {
 
 // Data struct
 type Data struct {
-	ReplicaNodeGroup  int      `json:"replicaNodeGroup"`
-	DataKey           string   `json:"dataKey"`
-	Database          string   `json:"database"`
-	ReplicatedNodeIds []string `json:"replicatedNodes"`
+	ReplicaNodeGroup int    `json:"replicaNodeGroup"`
+	DataKey          string `json:"dataKey"`
+	Database         string `json:"database"`
 	// TODO: remove the ReplicatedNodeIds, and have all logic go through the CollectiveNodes to determine active replicas (we can randomly choose IPs to request from)
 }
 

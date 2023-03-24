@@ -218,9 +218,6 @@ func Test_addToDataDictionary(t *testing.T) {
 			ReplicaNodeGroup: 1,
 			DataKey:          "1",
 			Database:         "test",
-			ReplicatedNodeIds: []string{
-				"1", "2", "3", "5",
-			},
 		},
 	}
 
@@ -276,9 +273,6 @@ func Test_retrieveFromDataDictionary(t *testing.T) {
 			ReplicaNodeGroup: 1,
 			DataKey:          key,
 			Database:         "test",
-			ReplicatedNodeIds: []string{
-				"1", "2", "3", "5",
-			},
 		},
 	}
 

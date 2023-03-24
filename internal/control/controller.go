@@ -96,10 +96,9 @@ func CollectiveUpdate(update *types.DataUpdate) {
 			Update:     update.DataUpdate.Update,
 			UpdateType: int32(update.DataUpdate.UpdateType),
 			Data: &proto.CollectiveData{
-				ReplicaNodeGroup:  int32(update.DataUpdate.UpdateData.ReplicaNodeGroup),
-				DataKey:           update.DataUpdate.UpdateData.DataKey,
-				Database:          update.DataUpdate.UpdateData.Database,
-				ReplicatedNodeIds: update.DataUpdate.UpdateData.ReplicatedNodeIds,
+				ReplicaNodeGroup: int32(update.DataUpdate.UpdateData.ReplicaNodeGroup),
+				DataKey:          update.DataUpdate.UpdateData.DataKey,
+				Database:         update.DataUpdate.UpdateData.Database,
 			},
 		},
 		ReplicaUpdate: &proto.CollectiveReplicaUpdate{

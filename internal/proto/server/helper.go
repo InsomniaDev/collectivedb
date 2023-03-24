@@ -19,10 +19,9 @@ func convertDataUpdatesToControlDataUpdate(incomingData *proto.DataUpdates) (con
 			Update:     incomingData.CollectiveUpdate.Update,
 			UpdateType: int(incomingData.CollectiveUpdate.UpdateType),
 			UpdateData: types.Data{
-				ReplicaNodeGroup:  int(incomingData.CollectiveUpdate.Data.ReplicaNodeGroup),
-				DataKey:           incomingData.CollectiveUpdate.Data.DataKey,
-				Database:          incomingData.CollectiveUpdate.Data.Database,
-				ReplicatedNodeIds: incomingData.CollectiveUpdate.Data.ReplicatedNodeIds,
+				ReplicaNodeGroup: int(incomingData.CollectiveUpdate.Data.ReplicaNodeGroup),
+				DataKey:          incomingData.CollectiveUpdate.Data.DataKey,
+				Database:         incomingData.CollectiveUpdate.Data.Database,
 			},
 		},
 		ReplicaUpdate: types.CollectiveReplicaUpdate{

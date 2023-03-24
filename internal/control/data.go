@@ -113,10 +113,9 @@ func retrieveAllCollectiveData(inputData chan<- *proto.DataUpdates) {
 				Update:     true,
 				UpdateType: types.NEW,
 				Data: &proto.CollectiveData{
-					ReplicaNodeGroup:  int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
-					DataKey:           node.Collective.Data.DataLocations[i].DataKey,
-					Database:          node.Collective.Data.DataLocations[i].Database,
-					ReplicatedNodeIds: node.Collective.Data.DataLocations[i].ReplicatedNodeIds,
+					ReplicaNodeGroup: int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
+					DataKey:          node.Collective.Data.DataLocations[i].DataKey,
+					Database:         node.Collective.Data.DataLocations[i].Database,
 				},
 			},
 		}

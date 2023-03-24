@@ -200,9 +200,6 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 			ReplicaNodeGroup: 1,
 			DataKey:          "test",
 			Database:         "test",
-			ReplicatedNodeIds: []string{
-				"1", "2", "3", "5",
-			},
 		},
 	}
 

@@ -80,7 +80,6 @@ message CollectiveData {
     int32 replicaNodeGroup = 1;
     string dataKey = 2;
     string database = 3;
-    repeated string replicatedNodeIds = 4;
 }
 
 message CollectiveReplicaUpdate {

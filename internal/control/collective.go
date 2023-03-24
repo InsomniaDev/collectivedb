@@ -604,10 +604,9 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 	}
 
 	newData := types.Data{
-		ReplicaNodeGroup:  node.Collective.ReplicaNodeGroup,
-		DataKey:           *key,
-		Database:          *bucket,
-		ReplicatedNodeIds: node.Collective.ReplicaNodeIds,
+		ReplicaNodeGroup: node.Collective.ReplicaNodeGroup,
+		DataKey:          *key,
+		Database:         *bucket,
 	}
 
 	if node.Active {
@@ -671,10 +670,9 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 						Update:     true,
 						UpdateType: int32(updateType),
 						Data: &proto.CollectiveData{
-							ReplicaNodeGroup:  int32(newData.ReplicaNodeGroup),
-							DataKey:           newData.DataKey,
-							Database:          newData.Database,
-							ReplicatedNodeIds: newData.ReplicatedNodeIds,
+							ReplicaNodeGroup: int32(newData.ReplicaNodeGroup),
+							DataKey:          newData.DataKey,
+							Database:         newData.Database,
 						},
 					},
 				}); err != nil {
