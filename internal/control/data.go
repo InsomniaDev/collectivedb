@@ -82,6 +82,49 @@ func storeDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 	return false, nil
 }
 
+// retrieveAllCollectiveData
+// Will return with all of the collective data
+func retrieveAllCollectiveData(inputData chan<- *proto.DataUpdates) {
+	for i := range node.Collective.Data.CollectiveNodes {
+		replicaNodes := []*proto.ReplicaNodes{}
+		for j := range node.Collective.Data.CollectiveNodes[i].ReplicaNodes {
+			replicaNodes = append(replicaNodes, &proto.ReplicaNodes{
+				NodeId:    node.Collective.Data.CollectiveNodes[i].ReplicaNodes[j].NodeId,
+				IpAddress: node.Collective.Data.CollectiveNodes[i].ReplicaNodes[j].IpAddress,
+			})
+		}
+
+		inputData <- &proto.DataUpdates{
+			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
+				Update:     true,
+				UpdateType: types.NEW,
+				UpdateReplica: &proto.UpdateReplica{
+					ReplicaNodeGroup:   int32(node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup),
+					SecondaryNodeGroup: int32(node.Collective.Data.CollectiveNodes[i].SecondaryNodeGroup),
+					FullGroup:          node.Collective.Data.CollectiveNodes[i].FullGroup,
+					ReplicaNodes:       replicaNodes,
+				},
+			},
+		}
+	}
+	for i := range node.Collective.Data.DataLocations {
+		inputData <- &proto.DataUpdates{
+			CollectiveUpdate: &proto.CollectiveDataUpdate{
+				Update:     true,
+				UpdateType: types.NEW,
+				Data: &proto.CollectiveData{
+					ReplicaNodeGroup:  int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
+					DataKey:           node.Collective.Data.DataLocations[i].DataKey,
+					Database:          node.Collective.Data.DataLocations[i].Database,
+					ReplicatedNodeIds: node.Collective.Data.DataLocations[i].ReplicatedNodeIds,
+				},
+			},
+		}
+
+	}
+	inputData <- nil
+}
+
 // retrieveAllReplicaData
 // Will return with all of the replicated data
 func retrieveAllReplicaData(inputData chan<- *types.StoredData) {

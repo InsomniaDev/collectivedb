@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/insomniadev/collective-db/internal/proto"
+	"github.com/insomniadev/collective-db/internal/types"
 	"github.com/insomniadev/collective-db/resources"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -40,6 +41,39 @@ func getConnectionOptions(ipAddress *string) *[]grpc.DialOption {
 	return &opts
 }
 
+// SyncCollectiveRequest
+// Is responsible for syncing all collective data in the cluster to this new node
+func SyncCollectiveRequest(ipAddress *string, data chan<- *types.DataUpdate) error {
+	// Setup the client
+	connOpts := getConnectionOptions(ipAddress)
+	conn, err := grpc.Dial(*ipAddress, *connOpts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := proto.NewRouteGuideClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if syncClient, err := client.SyncCollectiveRequest(ctx, &proto.SyncIp{IpAddress: *ipAddress}); err != nil {
+		for {
+			in, err := syncClient.Recv()
+			if err == io.EOF {
+				// read done.
+				data <- nil
+				return nil
+			}
+			if err != nil {
+				data <- nil
+				return err
+			}
+			data <- convertDataUpdatesToControlDataUpdate(in)
+		}
+	}
+
+	return nil
+}
+
 // SyncDataRequest
 // Is responsible for syncing all data from the other node in the replica group
 func SyncDataRequest(ipAddress *string, data chan<- *proto.Data) error {
@@ -59,9 +93,11 @@ func SyncDataRequest(ipAddress *string, data chan<- *proto.Data) error {
 			in, err := syncClient.Recv()
 			if err == io.EOF {
 				// read done.
+				data <- nil
 				return nil
 			}
 			if err != nil {
+				data <- nil
 				return err
 			}
 			data <- in

@@ -2,14 +2,15 @@ package types
 
 // Main Controller struct
 type Controller struct {
-	NodeId             string         `json:"nodeId"`             // UUID of this node within the NodeList
-	IpAddress          string         `json:"ipAddress"`          // IpAddress of this node
-	KubeDeployed       bool           `json:"kubernetesDeployed"` // This app is deployed in kubernetes
-	ReplicaNodeGroup   int            `json:"replicaNodeGroup"`   // The replica node id
-	SecondaryNodeGroup int            `json:"secondaryNodeGroup"` // The secondary node group id // TODO: Need to get this actually populated
-	ReplicaNodeIds     []string       `json:"replicaNodeIds"`     // Replica node ids for distributing traffic
-	ReplicaNodes       []Node         `json:"replicaNodes"`       // Replica nodes of this node
-	Data               DataDictionary `json:"data"`               // Location of all the keys to nodes
+	NodeId             string         `json:"nodeId"`               // UUID of this node within the NodeList
+	IpAddress          string         `json:"ipAddress"`            // IpAddress of this node
+	KubeDeployed       bool           `json:"kubernetesDeployed"`   // This app is deployed in kubernetes
+	KubeServiceDns     string         `json:"kubernetesServiceDns"` // This app is deployed in kubernetes
+	ReplicaNodeGroup   int            `json:"replicaNodeGroup"`     // The replica node id
+	SecondaryNodeGroup int            `json:"secondaryNodeGroup"`   // The secondary node group id // TODO: Need to get this actually populated
+	ReplicaNodeIds     []string       `json:"replicaNodeIds"`       // Replica node ids for distributing traffic
+	ReplicaNodes       []Node         `json:"replicaNodes"`         // Replica nodes of this node
+	Data               DataDictionary `json:"data"`                 // Location of all the keys to nodes
 }
 
 type Collective interface {

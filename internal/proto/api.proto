@@ -8,7 +8,7 @@
 *
 * protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-    api/proto/api.proto
+    internal/proto/api.proto
 *
 **/
 
@@ -25,6 +25,11 @@ service RouteGuide {
   // 
   // Receives a stream of updates, with each item will return a boolean on if the update was successful
   rpc ReplicaUpdate(stream DataUpdates) returns (stream Updated) {}
+
+  // SyncCollectiveRequest
+  // 
+  // Receives a stream of collective updates for a node that is now joining the system
+  rpc SyncCollectiveRequest(SyncIp) returns (stream DataUpdates) {}
 
   // SyncDataRequest
   // 

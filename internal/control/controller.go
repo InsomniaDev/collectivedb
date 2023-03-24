@@ -157,6 +157,13 @@ func CollectiveUpdate(update *types.DataUpdate) {
 	}
 }
 
+// CollectiveSyncRequest
+//
+//	Node that became part of this replica group requires all of the data
+func CollectiveSyncRequest(storedData chan<- *proto.DataUpdates) {
+	retrieveAllCollectiveData(storedData)
+}
+
 // ReplicaSyncRequest
 //
 //	Node that became part of this replica group requires all of the data

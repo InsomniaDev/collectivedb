@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.12
-// source: api/proto/api.proto
+// source: internal/proto/api.proto
 
 package proto
 
@@ -26,6 +26,10 @@ type RouteGuideClient interface {
 	//
 	// Receives a stream of updates, with each item will return a boolean on if the update was successful
 	ReplicaUpdate(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_ReplicaUpdateClient, error)
+	// SyncCollectiveRequest
+	//
+	// Receives a stream of collective updates for a node that is now joining the system
+	SyncCollectiveRequest(ctx context.Context, in *SyncIp, opts ...grpc.CallOption) (RouteGuide_SyncCollectiveRequestClient, error)
 	// SyncDataRequest
 	//
 	// Will send a request to a node to sync all data back to the newly joined node
@@ -91,8 +95,40 @@ func (x *routeGuideReplicaUpdateClient) Recv() (*Updated, error) {
 	return m, nil
 }
 
+func (c *routeGuideClient) SyncCollectiveRequest(ctx context.Context, in *SyncIp, opts ...grpc.CallOption) (RouteGuide_SyncCollectiveRequestClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[1], "/main.RouteGuide/SyncCollectiveRequest", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeGuideSyncCollectiveRequestClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RouteGuide_SyncCollectiveRequestClient interface {
+	Recv() (*DataUpdates, error)
+	grpc.ClientStream
+}
+
+type routeGuideSyncCollectiveRequestClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeGuideSyncCollectiveRequestClient) Recv() (*DataUpdates, error) {
+	m := new(DataUpdates)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *routeGuideClient) SyncDataRequest(ctx context.Context, in *SyncIp, opts ...grpc.CallOption) (RouteGuide_SyncDataRequestClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[1], "/main.RouteGuide/SyncDataRequest", opts...)
+	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[2], "/main.RouteGuide/SyncDataRequest", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +160,7 @@ func (x *routeGuideSyncDataRequestClient) Recv() (*Data, error) {
 }
 
 func (c *routeGuideClient) DictionaryUpdate(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_DictionaryUpdateClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[2], "/main.RouteGuide/DictionaryUpdate", opts...)
+	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[3], "/main.RouteGuide/DictionaryUpdate", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +191,7 @@ func (x *routeGuideDictionaryUpdateClient) Recv() (*Updated, error) {
 }
 
 func (c *routeGuideClient) DataUpdate(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_DataUpdateClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[3], "/main.RouteGuide/DataUpdate", opts...)
+	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[4], "/main.RouteGuide/DataUpdate", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +222,7 @@ func (x *routeGuideDataUpdateClient) Recv() (*Updated, error) {
 }
 
 func (c *routeGuideClient) ReplicaDataUpdate(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_ReplicaDataUpdateClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[4], "/main.RouteGuide/ReplicaDataUpdate", opts...)
+	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[5], "/main.RouteGuide/ReplicaDataUpdate", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +262,7 @@ func (c *routeGuideClient) GetData(ctx context.Context, in *Data, opts ...grpc.C
 }
 
 func (c *routeGuideClient) DeleteData(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_DeleteDataClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[5], "/main.RouteGuide/DeleteData", opts...)
+	stream, err := c.cc.NewStream(ctx, &RouteGuide_ServiceDesc.Streams[6], "/main.RouteGuide/DeleteData", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -264,6 +300,10 @@ type RouteGuideServer interface {
 	//
 	// Receives a stream of updates, with each item will return a boolean on if the update was successful
 	ReplicaUpdate(RouteGuide_ReplicaUpdateServer) error
+	// SyncCollectiveRequest
+	//
+	// Receives a stream of collective updates for a node that is now joining the system
+	SyncCollectiveRequest(*SyncIp, RouteGuide_SyncCollectiveRequestServer) error
 	// SyncDataRequest
 	//
 	// Will send a request to a node to sync all data back to the newly joined node
@@ -297,6 +337,9 @@ type UnimplementedRouteGuideServer struct {
 
 func (UnimplementedRouteGuideServer) ReplicaUpdate(RouteGuide_ReplicaUpdateServer) error {
 	return status.Errorf(codes.Unimplemented, "method ReplicaUpdate not implemented")
+}
+func (UnimplementedRouteGuideServer) SyncCollectiveRequest(*SyncIp, RouteGuide_SyncCollectiveRequestServer) error {
+	return status.Errorf(codes.Unimplemented, "method SyncCollectiveRequest not implemented")
 }
 func (UnimplementedRouteGuideServer) SyncDataRequest(*SyncIp, RouteGuide_SyncDataRequestServer) error {
 	return status.Errorf(codes.Unimplemented, "method SyncDataRequest not implemented")
@@ -353,6 +396,27 @@ func (x *routeGuideReplicaUpdateServer) Recv() (*DataUpdates, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+func _RouteGuide_SyncCollectiveRequest_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SyncIp)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RouteGuideServer).SyncCollectiveRequest(m, &routeGuideSyncCollectiveRequestServer{stream})
+}
+
+type RouteGuide_SyncCollectiveRequestServer interface {
+	Send(*DataUpdates) error
+	grpc.ServerStream
+}
+
+type routeGuideSyncCollectiveRequestServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeGuideSyncCollectiveRequestServer) Send(m *DataUpdates) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _RouteGuide_SyncDataRequest_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -518,6 +582,11 @@ var RouteGuide_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 		{
+			StreamName:    "SyncCollectiveRequest",
+			Handler:       _RouteGuide_SyncCollectiveRequest_Handler,
+			ServerStreams: true,
+		},
+		{
 			StreamName:    "SyncDataRequest",
 			Handler:       _RouteGuide_SyncDataRequest_Handler,
 			ServerStreams: true,
@@ -547,5 +616,5 @@ var RouteGuide_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "api/proto/api.proto",
+	Metadata: "internal/proto/api.proto",
 }

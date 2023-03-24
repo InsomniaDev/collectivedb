@@ -195,6 +195,8 @@ func determineIpAddress() string {
 
 	// This pod has a search dns route for k8s, compose the dns route for the pod
 	if isInK8s, svcValue := checkIfK8s(); isInK8s {
+		node.Collective.KubeServiceDns = svcValue + ":9090"
+		log.Printf("Discovered to be part of a kubernetes service: %s", node.Collective.KubeServiceDns)
 
 		// set as kubernetes being active
 		node.Collective.KubeDeployed = true
@@ -227,21 +229,29 @@ func determineIpAddress() string {
 //	gets the master node and pulls in the data dictionary to start the application up
 func retrieveDataDictionary() {
 
-	// TODO: implement the following logic
-	collectiveBrokers := []string{}
-	collectiveMainBrokers := os.Getenv("COLLECTIVE_MAIN_BROKERS")
-	if collectiveMainBrokers != "" {
-		collectiveBrokers = strings.Split(collectiveMainBrokers, ",")
-	}
-	log.Println(collectiveBrokers)
+	// extracting the function for pulling and updating the data from the other functions so that there is only one implementation
+	storeIncomingData := func(ipAddress *string) (bool, error) {
+		dataToStore := make(chan *types.DataUpdate)
+		if err := client.SyncCollectiveRequest(ipAddress, dataToStore); err != nil {
 
-	// if COLLECTIVE_MAIN_BROKERS is populated, then use first
-	if len(collectiveBrokers) > 0 {
-		// TODO: Cycle through brokers to pull in the dictionary data - need to create all of the functions
-	} else if node.Collective.KubeDeployed {
-		// TODO: Pull data from any other pod that is in this current service group
-	} else {
-		// Create a new collective cluster
+			for {
+				storeDictionaryData := <-dataToStore
+				if storeDictionaryData != nil {
+					// Store the collective data now
+					collectiveUpdate(storeDictionaryData)
+				} else {
+					// we are now done processing
+					return true, nil
+				}
+			}
+		} else {
+			log.Println(err)
+			return false, err
+		}
+	}
+
+	// Create a new collective cluster
+	createNewCollective := func() {
 		node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
 			{
 				ReplicaNodeGroup:   1,
@@ -261,6 +271,41 @@ func retrieveDataDictionary() {
 				IpAddress: node.Collective.IpAddress,
 			},
 		}
+	}
+
+	collectiveBrokers := []string{}
+	collectiveMainBrokers := os.Getenv("COLLECTIVE_MAIN_BROKERS")
+	if collectiveMainBrokers != "" {
+		collectiveBrokers = strings.Split(collectiveMainBrokers, ",")
+	}
+	log.Println(collectiveBrokers)
+
+	// if COLLECTIVE_MAIN_BROKERS is populated, then use first
+	if len(collectiveBrokers) > 0 {
+		// Cycle through brokers to pull in the dictionary data - need to create all of the functions
+		successfullyProcessed := false
+		for i := range collectiveBrokers {
+			if stored, err := storeIncomingData(&collectiveBrokers[i]); err != nil && stored {
+				successfullyProcessed = true
+				log.Println("Successfully initialized into a Collective cluster")
+				break
+			}
+		}
+		// If we weren't able to pull successfully, then let's panic and kill the application
+		if !successfullyProcessed {
+			panic(fmt.Sprintf("not able to pull data from the COLLECTIVE_MAIN_BROKERS, %s", collectiveMainBrokers))
+		}
+
+	} else if node.Collective.KubeDeployed {
+		// Pull data from any other pod that is in this current service group
+		if stored, err := storeIncomingData(&node.Collective.KubeServiceDns); err != nil && stored {
+			log.Println("Successfully initialized into a Kubernetes service group within a cluster")
+		} else {
+			log.Println("Current Kubernetes service group does not have an existing Collective cluster, creating new Collective")
+			createNewCollective()
+		}
+	} else {
+		createNewCollective()
 	}
 }
 

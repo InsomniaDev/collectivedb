@@ -3,6 +3,7 @@ package server
 import (
 	context "context"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/insomniadev/collective-db/internal/control"
@@ -46,6 +47,42 @@ func (s *grpcServer) ReplicaUpdate(stream proto.RouteGuide_ReplicaUpdateServer) 
 			return err
 		}
 	}
+}
+
+// SyncCollectiveRequest
+// Will send a request to the server to pull in all of the collective data to the newly joined node
+func (s *grpcServer) SyncCollectiveRequest(syncIpAddress *proto.SyncIp, stream proto.RouteGuide_SyncCollectiveRequestServer) (err error) {
+	// Make a channel that the process can yield the discovered data through
+	storedData := make(chan *proto.DataUpdates)
+
+	// Setup a process to wait for the returned data
+	var wg sync.WaitGroup
+
+	// Go through and return the data as it is discovered
+	wg.Add(1)
+	go func(chan *proto.DataUpdates) {
+		defer wg.Done()
+		for {
+			data := <-storedData
+			if data != nil {
+				if err = stream.Send(data); err != nil {
+					// Stop processing since we hit an error
+					log.Println("SyncCollectiveRequest: ", err)
+					return
+				}
+			} else {
+				// We are done processing
+				return
+			}
+		}
+	}(storedData)
+
+	// Request the data to be returned
+	control.CollectiveSyncRequest(storedData)
+
+	// Wait until all stream data has been sent
+	wg.Wait()
+	return err
 }
 
 // SyncDataRequest
