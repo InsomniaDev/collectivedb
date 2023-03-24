@@ -24,5 +24,6 @@ fmt:
 build: fmt set-env-os-linux set-env-arch
 	go build
 
+# TODO: Work through race flag exceptions `go test --cover --race ./... `
 test: fmt clean
 	go test --cover ./... 
