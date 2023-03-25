@@ -1,5 +1,7 @@
 package server
 
+// TODO: Add unit tests for this file
+
 import (
 	context "context"
 	"io"
@@ -13,7 +15,8 @@ import (
 
 // Server type for working with the gRPC server
 type grpcServer struct {
-	proto.UnimplementedRouteGuideServer
+	// proto.UnimplementedRouteGuideServer
+	proto.RouteGuideServer
 
 	dictionary_mu sync.Mutex
 }

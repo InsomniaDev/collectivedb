@@ -36,6 +36,10 @@ func init() {
 	grpcServer := grpc.NewServer(opts...)
 	proto.RegisterRouteGuideServer(grpcServer, NewGrpcServer())
 	go grpcServer.Serve(lis)
+
+	// Initial setup
+	node.Active = true
+	node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress = "127.0.0.1:9090"
 }
 
 func Test_createUuid(t *testing.T) {
@@ -161,7 +165,27 @@ func Test_determineReplicas(t *testing.T) {
 }
 
 func Test_distributeData(t *testing.T) {
-	// TODO: Add in tests for the secondaryNodeGroup
+	node.Collective.ReplicaNodeGroup = 1
+	node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
+		{
+			ReplicaNodeGroup: 1,
+			ReplicaNodes: []types.Node{
+				{
+					NodeId:    "1",
+					IpAddress: "127.0.0.1:9090",
+				},
+			},
+		},
+		{
+			ReplicaNodeGroup: 2,
+			ReplicaNodes: []types.Node{
+				{
+					NodeId:    "2",
+					IpAddress: "127.0.0.1:9090",
+				},
+			},
+		},
+	}
 
 	bucket := "test"
 
@@ -189,6 +213,26 @@ func Test_distributeData(t *testing.T) {
 				bucket:             &bucket,
 				data:               &testValue,
 				secondaryNodeGroup: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Success_thisAsSecondaryNodeGroup",
+			args: args{
+				key:                &testKey,
+				bucket:             &bucket,
+				data:               &testValue,
+				secondaryNodeGroup: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Success_withSecondaryNodeGroup",
+			args: args{
+				key:                &testKey,
+				bucket:             &bucket,
+				data:               &testValue,
+				secondaryNodeGroup: 2,
 			},
 			wantErr: false,
 		},
@@ -437,6 +481,27 @@ func Test_retrieveDataDictionary(t *testing.T) {
 				if !reflect.DeepEqual(node.Collective.Data.CollectiveNodes, newCluster) {
 					t.Errorf("retrieveDataDictionary() got = %v, want %v", node.Collective.Data.CollectiveNodes, newCluster)
 				}
+			}
+		})
+	}
+}
+
+func Test_sendClientUpdateDictionaryRequest(t *testing.T) {
+	type args struct {
+		ipAddress *string
+		update    *proto.DataUpdates
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := sendClientUpdateDictionaryRequest(tt.args.ipAddress, tt.args.update); (err != nil) != tt.wantErr {
+				t.Errorf("sendClientUpdateDictionaryRequest() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

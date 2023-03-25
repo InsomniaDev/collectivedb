@@ -1,5 +1,7 @@
 package client
 
+// TODO: Add unit tests for this file
+
 import (
 	"context"
 	"io"
@@ -124,7 +126,7 @@ func DataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 	stream, err := client.DataUpdate(ctx)
 
 	if err != nil {
-		log.Fatalf("stream.RecordRoute failed: %v", err)
+		log.Fatalf("DataUpdate stream.RecordRoute failed: %v", err)
 	}
 
 	go func() {
@@ -138,7 +140,7 @@ func DataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 			}
 
 			if err := stream.Send(data); err != nil {
-				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+				log.Printf("DataUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 			}
 		}
 	}()
@@ -187,7 +189,7 @@ func DeleteData(ipAddress *string, dataChan <-chan *proto.Data) error {
 	stream, err := client.DeleteData(ctx)
 
 	if err != nil {
-		log.Fatalf("stream.RecordRoute failed: %v", err)
+		log.Fatalf("DeleteData stream.RecordRoute failed: %v", err)
 	}
 
 	go func() {
@@ -201,7 +203,7 @@ func DeleteData(ipAddress *string, dataChan <-chan *proto.Data) error {
 			}
 
 			if err := stream.Send(data); err != nil {
-				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+				log.Printf("DeleteData stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 				break
 			}
 		}
@@ -226,7 +228,7 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 	stream, err := client.DictionaryUpdate(ctx)
 
 	if err != nil {
-		log.Printf("stream.RecordRoute failed: %v", err)
+		log.Printf("DictionaryUpdate stream.RecordRoute failed: %v", err)
 		return err
 	}
 
@@ -240,7 +242,7 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 		}
 
 		if err := stream.Send(data); err != nil {
-			log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+			log.Printf("DictionaryUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 			break
 		}
 	}
@@ -265,7 +267,7 @@ func ReplicaUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) error 
 	stream, err := client.ReplicaUpdate(ctx)
 
 	if err != nil {
-		log.Fatalf("stream.RecordRoute failed: %v", err)
+		log.Fatalf("ReplicaUpdate stream.RecordRoute failed: %v", err)
 	}
 
 	go func() {
@@ -279,7 +281,7 @@ func ReplicaUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) error 
 			}
 
 			if err := stream.Send(data); err != nil {
-				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+				log.Printf("ReplicaUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 			}
 		}
 	}()
@@ -304,7 +306,7 @@ func ReplicaDataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 	stream, err := client.ReplicaDataUpdate(ctx)
 
 	if err != nil {
-		log.Fatalf("stream.RecordRoute failed: %v", err)
+		log.Fatalf("ReplicaDataUpdate stream.RecordRoute failed: %v", err)
 	}
 
 	go func() {
@@ -318,7 +320,8 @@ func ReplicaDataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 			}
 
 			if err := stream.Send(data); err != nil {
-				log.Printf("stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+				log.Printf("ReplicaDataUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
+				stream.CloseSend()
 			}
 		}
 	}()

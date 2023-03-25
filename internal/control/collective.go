@@ -658,26 +658,26 @@ func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 					}
 				}
 			}
+		}
 
-			// Only update the data dictionary with this data if it was not sent here as part of the secondaryNodeGroup
-			if secondaryNodeGroup != node.Collective.ReplicaNodeGroup {
+		// Only update the data dictionary with this data if it was not sent here as part of the secondaryNodeGroup
+		if secondaryNodeGroup != node.Collective.ReplicaNodeGroup {
 
-				// Add this node to the DataDictionary
-				updateType := addToDataDictionary(newData)
+			// Add this node to the DataDictionary
+			updateType := addToDataDictionary(newData)
 
-				if err := sendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
-					CollectiveUpdate: &proto.CollectiveDataUpdate{
-						Update:     true,
-						UpdateType: int32(updateType),
-						Data: &proto.CollectiveData{
-							ReplicaNodeGroup: int32(newData.ReplicaNodeGroup),
-							DataKey:          newData.DataKey,
-							Database:         newData.Database,
-						},
+			if err := sendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+				CollectiveUpdate: &proto.CollectiveDataUpdate{
+					Update:     true,
+					UpdateType: int32(updateType),
+					Data: &proto.CollectiveData{
+						ReplicaNodeGroup: int32(newData.ReplicaNodeGroup),
+						DataKey:          newData.DataKey,
+						Database:         newData.Database,
 					},
-				}); err != nil {
-					return err
-				}
+				},
+			}); err != nil {
+				return err
 			}
 		}
 
@@ -697,7 +697,6 @@ func removeFromDictionarySlice[T types.Collective](s []T, i int) []T {
 //
 // extracted function that is used to send the update without all of the additional boilerplate code everywhere
 func sendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpdates) error {
-	// TODO: Add unit test
 
 	// Create the channel
 	updateDictionary := make(chan *proto.DataUpdates)
