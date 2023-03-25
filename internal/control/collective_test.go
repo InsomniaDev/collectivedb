@@ -385,7 +385,7 @@ func Test_removeDataFromSecondaryNodeGroup(t *testing.T) {
 	}
 }
 
-func TestTerminateReplicas(t *testing.T) {
+func Test_terminateReplicas(t *testing.T) {
 	tests := []struct {
 		name    string
 		wantErr bool
@@ -394,8 +394,8 @@ func TestTerminateReplicas(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := TerminateReplicas(); (err != nil) != tt.wantErr {
-				t.Errorf("TerminateReplicas() error = %v, wantErr %v", err, tt.wantErr)
+			if err := terminateReplicas(); (err != nil) != tt.wantErr {
+				t.Errorf("terminateReplicas() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

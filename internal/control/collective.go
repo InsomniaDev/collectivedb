@@ -485,10 +485,10 @@ func determineReplicas() (err error) {
 	return nil
 }
 
-// TerminateReplicas
+// terminateReplicas
 //
 // When this node shuts down, this function will ensure that there is no data loss and will offload data to other nodes if required
-func TerminateReplicas() (err error) {
+func terminateReplicas() (err error) {
 
 	// We only want this functionality to run IF this is currently a full replicaGroup and will no longer be full
 	// 		distribute the existing data into the newly created secondaryNodeGroup

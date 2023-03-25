@@ -2,6 +2,8 @@ package control
 
 // Thoughts: for the node IP it could be <IP_ADDRESS>/node?<NODE_ID>
 import (
+	"log"
+
 	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/proto/client"
@@ -60,7 +62,11 @@ func IsActive() bool {
 //
 //	Will deactivate the node, redistribute leaders, and send data if needed
 func Deactivate() bool {
-	return false
+	if err := terminateReplicas(); err != nil {
+		log.Println(err)
+		return false
+	}
+	return true
 }
 
 // NodeInfo
