@@ -5,29 +5,29 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"sync"
 	"testing"
 
 	"github.com/insomniadev/collective-db/internal/data"
 	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/proto"
+	"github.com/insomniadev/collective-db/internal/proto/server"
 	"github.com/insomniadev/collective-db/internal/types"
 	"google.golang.org/grpc"
 )
 
 func init() {
 	// Server type for working with the gRPC server
-	type grpcServerType struct {
-		proto.UnimplementedRouteGuideServer
+	// type grpcServerType struct {
+	// 	proto.UnimplementedRouteGuideServer
 
-		dictionary_mu sync.Mutex
-	}
+	// 	dictionary_mu sync.Mutex
+	// }
 
-	// Create and return the gRPC server
-	NewGrpcServer := func() *grpcServerType {
-		s := &grpcServerType{}
-		return s
-	}
+	// // Create and return the gRPC server
+	// NewGrpcServer := func() *grpcServerType {
+	// 	s := &grpcServerType{}
+	// 	return s
+	// }
 
 	lis, err := net.Listen("tcp", "localhost:9090")
 	if err != nil {
@@ -35,7 +35,7 @@ func init() {
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	proto.RegisterRouteGuideServer(grpcServer, NewGrpcServer())
+	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
 	go grpcServer.Serve(lis)
 
 	// Initial setup
@@ -165,8 +165,12 @@ func Test_determineReplicas(t *testing.T) {
 	}
 }
 
+// TODO: Fix failing test
 func Test_distributeData(t *testing.T) {
+	//  TODO: fix the `ReplicaDataUpdate stream.RecordRoute: stream.Send(key:"key"  database:"test"  data:"value"  replicaNodeGroup:1  secondaryNodeGroup:2) failed: EOF` error
+	node.Collective = types.Controller{}
 	node.Collective.ReplicaNodeGroup = 1
+	node.Collective.IpAddress = "127.0.0.1:9090"
 	node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
 		{
 			ReplicaNodeGroup: 1,

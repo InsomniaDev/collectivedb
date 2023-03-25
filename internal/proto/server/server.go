@@ -184,9 +184,11 @@ func (s *grpcServer) DictionaryUpdate(stream proto.RouteGuide_DictionaryUpdateSe
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
+			log.Println(err)
 			return nil
 		}
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 

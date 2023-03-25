@@ -51,7 +51,7 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 				if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryNodeGroup {
 					for j := range node.Collective.Data.CollectiveNodes[i].ReplicaNodes {
 						updateReplica := make(chan *proto.Data)
-						client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[j].IpAddress, updateReplica)
+						client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[j].IpAddress, updateReplica)
 						updateReplica <- dataUpdate
 						updateReplica <- nil
 					}
