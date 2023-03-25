@@ -1,4 +1,4 @@
-package control
+package collective
 
 import (
 	"bufio"
@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/insomniadev/collective-db/internal/data"
 	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/proto/client"
@@ -24,7 +25,28 @@ var (
 	err          error
 )
 
+// Pull from local database, if doesn't exist then
+//
+//	Create node id
+//	Get IP Address
+//	Determine replica nodes
+//	Get Node List
 func init() {
+
+	// Allow at some point for the node to start back up and begin an update task for the data
+	// nodeData := "node"
+	// if exists, value := database.Get(&nodeData, &nodeData); exists {
+	// 	if err := json.Unmarshal(*value, &controller); err != nil {
+	// 		log.Fatal("Failed to parse the configuration data")
+	// 	}
+
+	// determine if the replica still
+	// update and refresh data
+
+	// return if this is the correct group, if the group no longer exists, then start this as a new collective
+	// 	return
+	// }
+
 	if replicaCountString := os.Getenv("COLLECTIVE_REPLICA_COUNT"); replicaCountString != "" {
 		if replicaCount, err = strconv.Atoi(os.Getenv("COLLECTIVE_REPLICA_COUNT")); err != nil {
 			log.Fatal(err)
@@ -32,6 +54,49 @@ func init() {
 	} else {
 		replicaCount = 1
 	}
+
+	node.Collective.NodeId = createUuid()
+
+	// Utilizes Environment variables:
+	//	COLLECTIVE_HOST_URL - will set this as it's IP address with no additional logic
+	// 	COLLECTIVE_IP - will use this IP but still configure for K8S
+	// 	COLLECTIVE_RESOLVER_FILE - will override default /etc/resolv.conf file
+	node.Collective.IpAddress = determineIpAddress()
+
+	// Pull the collective database from the master node
+	// Utilizes Environment variables:
+	// 	COLLECTIVE_MAIN_BROKERS - main broker ip addresses, an array of comma separated strings
+	retrieveDataDictionary()
+
+	// Will assign replicas to this node
+	determineReplicas()
+}
+
+// IsActive
+//
+//	Returns a confirmation on if this node is currently active and processing
+//
+// THOUGHTS: If this server is up then it should be running, should this be where it has been synced with other nodes?
+func IsActive() bool {
+	return node.Active
+}
+
+// Deactivate
+//
+//	Will deactivate the node, redistribute leaders, and send data if needed
+func Deactivate() bool {
+	if err := terminateReplicas(); err != nil {
+		log.Println(err)
+		return false
+	}
+	return true
+}
+
+// NodeInfo
+//
+//	Returns info on this node
+func NodeInfo() *types.Controller {
+	return &node.Collective
 }
 
 // createUuid
@@ -39,102 +104,6 @@ func init() {
 //	Will generated a unique uuid for the node upon node creation
 func createUuid() string {
 	return uuid.New().String()
-}
-
-// retrieveFromDataDictionary
-// Will retrieve the key from the dictionary if it exists
-func retrieveFromDataDictionary(key *string) (data types.Data) {
-
-	for i := range node.Collective.Data.DataLocations {
-		if node.Collective.Data.DataLocations[i].DataKey == *key {
-			return node.Collective.Data.DataLocations[i]
-		}
-	}
-
-	return
-}
-
-// addToDataDictionary
-//
-//	Will add the data structure to the dictionary, or update the location
-func addToDataDictionary(dataToInsert types.Data) (updateType int) {
-	node.CollectiveMemoryMutex.Lock()
-
-	for i := range node.Collective.Data.DataLocations {
-		if node.Collective.Data.DataLocations[i].DataKey == dataToInsert.DataKey {
-			// already exists, so check if the data matches
-			node.Collective.Data.DataLocations[i] = dataToInsert
-
-			// Unlock and return
-			node.CollectiveMemoryMutex.Unlock()
-			return types.UPDATE
-		}
-	}
-
-	// if the data doesn't exist already
-	node.Collective.Data.DataLocations = append(node.Collective.Data.DataLocations, dataToInsert)
-
-	// Unlock and return
-	node.CollectiveMemoryMutex.Unlock()
-	return types.NEW
-}
-
-// collectiveUpdate
-//
-// This will go through and update the collective memory, not touching the actual data
-func collectiveUpdate(update *types.DataUpdate) {
-	node.CollectiveMemoryMutex.Lock()
-
-	// If this is a data update
-	if update.DataUpdate.Update {
-		// Update the data dictionary
-		switch update.DataUpdate.UpdateType {
-		case types.NEW:
-			// Adds the new element to the end of the array
-			node.Collective.Data.DataLocations = append(node.Collective.Data.DataLocations, update.DataUpdate.UpdateData)
-		case types.UPDATE:
-			// Updates the element where it is
-			for i := range node.Collective.Data.DataLocations {
-				if node.Collective.Data.DataLocations[i].DataKey == update.DataUpdate.UpdateData.DataKey {
-					node.Collective.Data.DataLocations[i] = update.DataUpdate.UpdateData
-					break
-				}
-			}
-		case types.DELETE:
-			// Deletes the element from the array
-			for i := range node.Collective.Data.DataLocations {
-				if node.Collective.Data.DataLocations[i].DataKey == update.DataUpdate.UpdateData.DataKey {
-					node.Collective.Data.DataLocations = removeFromDictionarySlice(node.Collective.Data.DataLocations, i)
-					break
-				}
-			}
-		}
-	} else if update.ReplicaUpdate.Update {
-		// Update the data dictionary
-		switch update.ReplicaUpdate.UpdateType {
-		case types.NEW:
-			// Adds the new element to the end of the array
-			node.Collective.Data.CollectiveNodes = append(node.Collective.Data.CollectiveNodes, update.ReplicaUpdate.UpdateReplica)
-		case types.UPDATE:
-			// Updates the element where it is
-			for i := range node.Collective.Data.CollectiveNodes {
-				if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup {
-					node.Collective.Data.CollectiveNodes[i] = update.ReplicaUpdate.UpdateReplica
-					break
-				}
-			}
-		case types.DELETE:
-			// Deletes the element from the array
-			for i := range node.Collective.Data.CollectiveNodes {
-				if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == update.ReplicaUpdate.UpdateReplica.ReplicaNodeGroup {
-					node.Collective.Data.CollectiveNodes = removeFromDictionarySlice(node.Collective.Data.CollectiveNodes, i)
-					break
-				}
-			}
-		}
-	}
-
-	node.CollectiveMemoryMutex.Unlock()
 }
 
 // determineIpAddress
@@ -238,7 +207,7 @@ func retrieveDataDictionary() {
 				storeDictionaryData := <-dataToStore
 				if storeDictionaryData != nil {
 					// Store the collective data now
-					collectiveUpdate(storeDictionaryData)
+					node.CollectiveUpdate(storeDictionaryData)
 				} else {
 					// we are now done processing
 					return true, nil
@@ -322,10 +291,10 @@ func syncData() (err error) {
 
 		go func(store chan *proto.Data) {
 			for {
-				data := <-store
-				if data != nil {
+				storeData := <-store
+				if storeData != nil {
 					// Store data in the database and do not attempt to distribute
-					go storeDataInDatabase(&data.Key, &data.Database, &data.Data, true, 0)
+					go data.StoreDataInDatabase(&storeData.Key, &storeData.Database, &storeData.Data, true, 0)
 				} else {
 					return
 				}
@@ -438,7 +407,7 @@ func determineReplicas() (err error) {
 			}
 
 			// Update the DataDictionary that this node is now part of the collective
-			if err := sendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+			if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 				ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 					Update:     true,
 					UpdateType: types.UPDATE,
@@ -464,7 +433,7 @@ func determineReplicas() (err error) {
 	// If all groups are full then we should immediately create a new group,
 	// 		the new group needs to have the secondaryNodeGroup set
 	randIndex := rand.Intn(len(node.Collective.Data.CollectiveNodes))
-	if err := sendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+	if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 			Update:     true,
 			UpdateType: types.NEW,
@@ -503,7 +472,7 @@ func terminateReplicas() (err error) {
 
 		// Create channel to retrieve all of the stored data through the retrieveAllReplicaData function
 		replicaData := make(chan *types.StoredData)
-		retrieveAllReplicaData(replicaData)
+		data.RetrieveAllReplicaData(replicaData)
 		for {
 			if storedData := <-replicaData; storedData != nil {
 
@@ -535,7 +504,7 @@ func terminateReplicas() (err error) {
 		// Do a collective update to set the secondaryNodeGroup
 		// 		Call the dictionary function before passing the data into the channel
 		// 		send the update to the first node in the list - the master node
-		if err := sendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+		if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 				Update:     true,
 				UpdateType: types.UPDATE,
@@ -578,7 +547,7 @@ func terminateReplicas() (err error) {
 		updateDictionary <- nil
 
 		// Remove this node from the collective database
-		if err := sendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
+		if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 			ReplicaUpdate: &proto.CollectiveReplicaUpdate{
 				Update:     true,
 				UpdateType: types.DELETE,
@@ -594,118 +563,5 @@ func terminateReplicas() (err error) {
 		}
 	}
 
-	return nil
-}
-
-func distributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) error {
-
-	if *key == "" || *bucket == "" {
-		return errors.New("invalid parameters")
-	}
-
-	newData := types.Data{
-		ReplicaNodeGroup: node.Collective.ReplicaNodeGroup,
-		DataKey:          *key,
-		Database:         *bucket,
-	}
-
-	if node.Active {
-		// Create the data object to be sent
-		dataUpdate := &proto.Data{
-			Key:                *key,
-			Database:           *bucket,
-			Data:               *data,
-			ReplicaNodeGroup:   int32(node.Collective.ReplicaNodeGroup),
-			SecondaryNodeGroup: int32(secondaryNodeGroup),
-		}
-
-		// Send to each replica attached to this replica node group
-		for i := range node.Collective.ReplicaNodes {
-			if node.Collective.ReplicaNodes[i].NodeId != node.Collective.NodeId {
-				updateReplica := make(chan *proto.Data)
-				client.ReplicaDataUpdate(&node.Collective.ReplicaNodes[i].IpAddress, updateReplica)
-				updateReplica <- dataUpdate
-				updateReplica <- nil
-			}
-		}
-
-		// Double check that the secondaryNodeGroup is 0 before starting to process
-		if secondaryNodeGroup != 0 {
-			for i := range node.Collective.Data.CollectiveNodes {
-				if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryNodeGroup {
-					for j := range node.Collective.Data.CollectiveNodes[i].ReplicaNodes {
-						updateReplica := make(chan *proto.Data)
-						client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[j].IpAddress, updateReplica)
-						updateReplica <- dataUpdate
-						updateReplica <- nil
-					}
-
-					// IF this replicaGroup is not complete and has a secondaryNodeGroup, THEN forward to all nodes in that group as well
-					if !node.Collective.Data.CollectiveNodes[i].FullGroup {
-						for j := range node.Collective.Data.CollectiveNodes {
-							if node.Collective.Data.CollectiveNodes[j].ReplicaNodeGroup == node.Collective.Data.CollectiveNodes[i].SecondaryNodeGroup {
-								// Send the update to the first node of that replica to start the update process from there
-								dataUpdate.SecondaryNodeGroup = int32(node.Collective.Data.CollectiveNodes[i].SecondaryNodeGroup)
-
-								updateReplica := make(chan *proto.Data)
-								client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, updateReplica)
-								updateReplica <- dataUpdate
-								updateReplica <- nil
-								break
-							}
-						}
-						break
-					}
-				}
-			}
-		}
-
-		// Only update the data dictionary with this data if it was not sent here as part of the secondaryNodeGroup
-		if secondaryNodeGroup != node.Collective.ReplicaNodeGroup {
-
-			// Add this node to the DataDictionary
-			updateType := addToDataDictionary(newData)
-
-			if err := sendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
-				CollectiveUpdate: &proto.CollectiveDataUpdate{
-					Update:     true,
-					UpdateType: int32(updateType),
-					Data: &proto.CollectiveData{
-						ReplicaNodeGroup: int32(newData.ReplicaNodeGroup),
-						DataKey:          newData.DataKey,
-						Database:         newData.Database,
-					},
-				},
-			}); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
-
-// removeFromDictionarySlice
-// removes the specified index from the slice and returns that slice, this does reorder the array by switching out the elements
-func removeFromDictionarySlice[T types.Collective](s []T, i int) []T {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
-
-// sendClientUpdateDictionaryRequest
-//
-// extracted function that is used to send the update without all of the additional boilerplate code everywhere
-func sendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpdates) error {
-
-	// Create the channel
-	updateDictionary := make(chan *proto.DataUpdates)
-
-	// Call the dictionary function before passing the data into the channel
-	// send the update to the first node in the list
-	go client.DictionaryUpdate(ipAddress, updateDictionary)
-
-	updateDictionary <- update
-	updateDictionary <- nil
 	return nil
 }

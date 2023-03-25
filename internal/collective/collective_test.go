@@ -1,4 +1,4 @@
-package control
+package collective
 
 import (
 	"log"
@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/insomniadev/collective-db/internal/data"
 	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/types"
@@ -249,7 +250,7 @@ func Test_distributeData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := distributeData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.secondaryNodeGroup); (err != nil) != tt.wantErr {
+			if err := data.DistributeData(tt.args.key, tt.args.bucket, tt.args.data, tt.args.secondaryNodeGroup); (err != nil) != tt.wantErr {
 				t.Errorf("distributeData() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -301,109 +302,9 @@ func Test_addToDataDictionary(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotUpdateType := addToDataDictionary(tt.args.dataToInsert)
+			gotUpdateType := node.AddToDataDictionary(tt.args.dataToInsert)
 			if gotUpdateType != tt.wantUpdateType {
 				t.Errorf("addToDataDictionary() gotUpdateType = %v, want %v", gotUpdateType, tt.wantUpdateType)
-			}
-		})
-	}
-}
-
-func Test_retrieveFromDataDictionary(t *testing.T) {
-	key := "1"
-	doesntExistKey := "2"
-	node.Collective.Data.DataLocations = []types.Data{
-		{
-			ReplicaNodeGroup: 1,
-			DataKey:          key,
-			Database:         "test",
-		},
-	}
-
-	type args struct {
-		key *string
-	}
-	tests := []struct {
-		name     string
-		args     args
-		wantData types.Data
-	}{
-		{
-			name: "Exists",
-			args: args{
-				key: &key,
-			},
-			wantData: node.Collective.Data.DataLocations[0],
-		},
-		{
-			name: "Doesn't Exist",
-			args: args{
-				key: &doesntExistKey,
-			},
-			wantData: types.Data{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if gotData := retrieveFromDataDictionary(tt.args.key); !reflect.DeepEqual(gotData, tt.wantData) {
-				t.Errorf("retrieveFromDataDictionary() = %v, want %v", gotData, tt.wantData)
-			}
-		})
-	}
-}
-
-func Test_removeFromDictionarySlice(t *testing.T) {
-	type args struct {
-		s []types.ReplicaGroup
-		i int
-	}
-	tests := []struct {
-		name string
-		args args
-		want []types.ReplicaGroup
-	}{
-		{
-			name: "Remove an element",
-			args: args{
-				s: []types.ReplicaGroup{
-					{
-						ReplicaNodeGroup: 1,
-					},
-					{
-						ReplicaNodeGroup: 2,
-					},
-					{
-						ReplicaNodeGroup: 3,
-					},
-				},
-				i: 1,
-			},
-			want: []types.ReplicaGroup{
-				{
-					ReplicaNodeGroup: 1,
-				},
-				{
-					ReplicaNodeGroup: 3,
-				},
-			},
-		},
-		{
-			name: "An empty array",
-			args: args{
-				s: []types.ReplicaGroup{
-					{
-						ReplicaNodeGroup: 1,
-					},
-				},
-				i: 0,
-			},
-			want: []types.ReplicaGroup{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := removeFromDictionarySlice(tt.args.s, tt.args.i); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("removeFromDictionarySlice() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -419,6 +320,7 @@ func Test_removeDataFromSecondaryNodeGroup(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -481,27 +383,6 @@ func Test_retrieveDataDictionary(t *testing.T) {
 				if !reflect.DeepEqual(node.Collective.Data.CollectiveNodes, newCluster) {
 					t.Errorf("retrieveDataDictionary() got = %v, want %v", node.Collective.Data.CollectiveNodes, newCluster)
 				}
-			}
-		})
-	}
-}
-
-func Test_sendClientUpdateDictionaryRequest(t *testing.T) {
-	type args struct {
-		ipAddress *string
-		update    *proto.DataUpdates
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := sendClientUpdateDictionaryRequest(tt.args.ipAddress, tt.args.update); (err != nil) != tt.wantErr {
-				t.Errorf("sendClientUpdateDictionaryRequest() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

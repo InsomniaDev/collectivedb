@@ -1,4 +1,4 @@
-package control
+package data
 
 import (
 	"reflect"
@@ -9,7 +9,7 @@ import (
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
-func Test_storeDataInDatabase(t *testing.T) {
+func TestStoreDataInDatabase(t *testing.T) {
 	// TODO: add tests to handle secondaryNodeGroup functionality
 
 	key := "test"
@@ -70,7 +70,7 @@ func Test_storeDataInDatabase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := storeDataInDatabase(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore, tt.args.secondaryNodeGroup)
+			got, got1 := StoreDataInDatabase(tt.args.key, tt.args.bucket, tt.args.data, tt.args.replicaStore, tt.args.secondaryNodeGroup)
 			if got != tt.want {
 				t.Errorf("storeDataInDatabase() got = %v, want %v", got, tt.want)
 			}
@@ -87,11 +87,11 @@ func Test_storeDataInDatabase(t *testing.T) {
 	}
 }
 
-func Test_retrieveDataFromDatabase(t *testing.T) {
+func TestRetrieveDataFromDatabase(t *testing.T) {
 	key := "test"
 	bucket := "test"
 	data := []byte("hello")
-	storeDataInDatabase(&key, &bucket, &data, false, 0)
+	StoreDataInDatabase(&key, &bucket, &data, false, 0)
 
 	wrongKey := "don'texist"
 
@@ -126,22 +126,22 @@ func Test_retrieveDataFromDatabase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := retrieveDataFromDatabase(tt.args.key, tt.args.bucket)
+			got, got1 := RetrieveDataFromDatabase(tt.args.key, tt.args.bucket)
 			if got != tt.want {
-				t.Errorf("retrieveDataFromDatabase() got = %v, want %v", got, tt.want)
+				t.Errorf("RetrieveDataFromDatabase() got = %v, want %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("retrieveDataFromDatabase() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("RetrieveDataFromDatabase() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
 }
 
-func Test_deleteDataFromDatabase(t *testing.T) {
+func TestDeleteDataFromDatabase(t *testing.T) {
 	key := "test"
 	bucket := "test"
 	data := []byte("hello")
-	storeDataInDatabase(&key, &bucket, &data, false, 0)
+	StoreDataInDatabase(&key, &bucket, &data, false, 0)
 
 	wrongKey := "don'texist"
 
@@ -176,7 +176,7 @@ func Test_deleteDataFromDatabase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := deleteDataFromDatabase(tt.args.key, tt.args.bucket)
+			got, err := DeleteDataFromDatabase(tt.args.key, tt.args.bucket)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("deleteDataFromDatabase() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -188,11 +188,11 @@ func Test_deleteDataFromDatabase(t *testing.T) {
 	}
 }
 
-func Test_retrieveAllReplicaData(t *testing.T) {
+func TestRetrieveAllReplicaData(t *testing.T) {
 	key := "test"
 	bucket := "test"
 	data := []byte("hello")
-	storeDataInDatabase(&key, &bucket, &data, false, 0)
+	StoreDataInDatabase(&key, &bucket, &data, false, 0)
 	count := 0
 
 	node.Collective.Data.DataLocations = []types.Data{
@@ -232,7 +232,7 @@ func Test_retrieveAllReplicaData(t *testing.T) {
 				}
 			}(tt.args.inputData)
 
-			retrieveAllReplicaData(tt.args.inputData)
+			RetrieveAllReplicaData(tt.args.inputData)
 			time.Sleep(10 * time.Millisecond)
 			if count != 1 {
 				t.Errorf("Did not capture all data")

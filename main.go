@@ -8,8 +8,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/insomniadev/collective-db/internal/control"
+	"github.com/insomniadev/collective-db/internal/collective"
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/proto/server"
 	"github.com/insomniadev/collective-db/resources"
@@ -56,14 +57,28 @@ func main() {
 	}
 	grpcServer := grpc.NewServer(opts...)
 	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
-	grpcServer.Serve(lis)
+	go grpcServer.Serve(lis)
+
+	quitAfterTenSeconds := 0
+	for {
+		if collective.IsActive() {
+			break
+		} else {
+			time.Sleep(1 * time.Second)
+			quitAfterTenSeconds++
+			if quitAfterTenSeconds > 10 {
+				panic("Application failed to get healthy")
+			}
+			log.Println("initializing")
+		}
+	}
 }
 
 // set a block to catch a SIG KILL or SIG TERM signal that will then fire off the terminateReplicas functionality
 func handleAppClose() {
 	sig := <-sigs
 	log.Printf("Received signal (%s) to quit application\n", sig.String())
-	if deactivated := control.Deactivate(); deactivated {
+	if deactivated := collective.Deactivate(); deactivated {
 		log.Println("Successfully shutdown node and redistributed the traffic")
 	} else {
 		log.Println("Failed to successfully shutdown the node")

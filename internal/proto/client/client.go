@@ -253,6 +253,8 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 // ReplicaUpdate
 // Will have a collective update to the attached replica through the replica update point
 func ReplicaUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) error {
+	// TODO: Need to determine a way to notice a lost node and automatically trigger a data distribution
+
 	// Setup the client
 	connOpts := getConnectionOptions(ipAddress)
 	conn, err := grpc.Dial(*ipAddress, *connOpts...)
