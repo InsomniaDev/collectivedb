@@ -40,6 +40,7 @@ func init() {
 
 	// Initial setup
 	node.Active = true
+	node.Collective.IpAddress = "127.0.0.1:9090"
 	node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress = "127.0.0.1:9090"
 }
 
