@@ -130,19 +130,15 @@ func DataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 	}
 
 	for data := range dataChan {
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				log.Println(err)
-			}
-			break
-		}
-
 		if err := stream.Send(data); err != nil {
 			log.Printf("DataUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 			break
 		}
 	}
 
+	if err := stream.CloseSend(); err != nil {
+		log.Println(err)
+	}
 	return nil
 }
 
@@ -191,17 +187,14 @@ func DeleteData(ipAddress *string, dataChan <-chan *proto.Data) error {
 	}
 
 	for data := range dataChan {
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				log.Println(err)
-			}
-			break
-		}
-
 		if err := stream.Send(data); err != nil {
 			log.Printf("DeleteData stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 			break
 		}
+	}
+
+	if err := stream.CloseSend(); err != nil {
+		log.Println(err)
 	}
 	return nil
 }
@@ -224,25 +217,19 @@ func DictionaryUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) err
 
 	if err != nil {
 		log.Printf("DictionaryUpdate stream.RecordRoute failed: %v", err)
-		cancel()
 		return err
 	}
 
 	for data := range dataChan {
-		// data := <-dataChan
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				log.Println(err)
-			}
-			break
-		}
-
 		if err := stream.Send(data); err != nil {
 			log.Printf("DictionaryUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 			break
 		}
 	}
 
+	if err := stream.CloseSend(); err != nil {
+		log.Println(err)
+	}
 	return nil
 }
 
@@ -269,19 +256,15 @@ func ReplicaUpdate(ipAddress *string, dataChan <-chan *proto.DataUpdates) error 
 	}
 
 	for data := range dataChan {
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				log.Println(err)
-			}
-			break
-		}
-
 		if err := stream.Send(data); err != nil {
 			log.Printf("ReplicaUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
 			break
 		}
 	}
 
+	if err := stream.CloseSend(); err != nil {
+		log.Println(err)
+	}
 	return nil
 }
 
@@ -306,19 +289,14 @@ func ReplicaDataUpdate(ipAddress *string, dataChan <-chan *proto.Data) error {
 	}
 
 	for data := range dataChan {
-		if data == nil {
-			if err := stream.CloseSend(); err != nil {
-				log.Println(err)
-			}
-			break
-		}
-
 		if err := stream.Send(data); err != nil {
 			log.Printf("ReplicaDataUpdate stream.RecordRoute: stream.Send(%v) failed: %v", data, err)
-			stream.CloseSend()
 			break
 		}
 	}
 
+	if err := stream.CloseSend(); err != nil {
+		log.Println(err)
+	}
 	return nil
 }

@@ -19,6 +19,13 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 		return errors.New("invalid parameters")
 	}
 
+	updateReplica := func(ipAddress *string, data *proto.Data) {
+		replicaUpdate := make(chan *proto.Data)
+		go client.ReplicaDataUpdate(ipAddress, replicaUpdate)
+		replicaUpdate <- data
+		close(replicaUpdate)
+	}
+
 	newData := types.Data{
 		ReplicaNodeGroup: node.Collective.ReplicaNodeGroup,
 		DataKey:          *key,
@@ -38,11 +45,7 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 		// Send to each replica attached to this replica node group
 		for i := range node.Collective.ReplicaNodes {
 			if node.Collective.ReplicaNodes[i].NodeId != node.Collective.NodeId {
-				updateReplica := make(chan *proto.Data)
-				go client.ReplicaDataUpdate(&node.Collective.ReplicaNodes[i].IpAddress, updateReplica)
-				updateReplica <- dataUpdate
-				updateReplica <- nil
-				close(updateReplica)
+				updateReplica(&node.Collective.ReplicaNodes[i].IpAddress, dataUpdate)
 			}
 		}
 
@@ -51,11 +54,7 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 			for i := range node.Collective.Data.CollectiveNodes {
 				if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryNodeGroup {
 					for j := range node.Collective.Data.CollectiveNodes[i].ReplicaNodes {
-						updateReplica := make(chan *proto.Data)
-						go client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[j].IpAddress, updateReplica)
-						updateReplica <- dataUpdate
-						updateReplica <- nil
-						close(updateReplica)
+						updateReplica(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[j].IpAddress, dataUpdate)
 					}
 
 					// IF this replicaGroup is not complete and has a secondaryNodeGroup, THEN forward to all nodes in that group as well
@@ -65,11 +64,7 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 								// Send the update to the first node of that replica to start the update process from there
 								dataUpdate.SecondaryNodeGroup = int32(node.Collective.Data.CollectiveNodes[i].SecondaryNodeGroup)
 
-								updateReplica := make(chan *proto.Data)
-								go client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, updateReplica)
-								updateReplica <- dataUpdate
-								updateReplica <- nil
-								close(updateReplica)
+								updateReplica(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, dataUpdate)
 								break
 							}
 						}
@@ -163,7 +158,6 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 				Data:             *data,
 				ReplicaNodeGroup: int32(dataVolume.ReplicaNodeGroup),
 			}
-			protoData <- nil
 			close(protoData)
 
 			// return the boolean from this call
@@ -244,16 +238,14 @@ func DeleteDataFromDatabase(key, bucket *string) (bool, error) {
 
 			// Send delete command to the first node in the replica group that contains the data
 			deleteData := make(chan *proto.Data)
-			if err := client.DeleteData(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, deleteData); err != nil {
-				return false, err
-			}
+			go client.DeleteData(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, deleteData)
 
 			deleteData <- &proto.Data{
 				Key:              *key,
 				Database:         *bucket,
 				ReplicaNodeGroup: int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
 			}
-			deleteData <- nil
+			close(deleteData)
 			return true, nil
 		}
 	}

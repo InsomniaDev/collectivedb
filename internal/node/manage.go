@@ -124,10 +124,9 @@ func DictionaryUpdate(update *types.DataUpdate) {
 			// initialize first call
 			updateDictionary := make(chan *proto.DataUpdates)
 			go client.ReplicaUpdate(&Collective.ReplicaNodes[i].IpAddress, updateDictionary)
-			
+
 			// Send the data into the dictionary update function
 			updateDictionary <- protoData
-			updateDictionary <- nil
 			close(updateDictionary)
 		}
 	}
@@ -149,7 +148,6 @@ func DictionaryUpdate(update *types.DataUpdate) {
 
 				// Send the data into the dictionary update function
 				updateDictionary <- protoData
-				updateDictionary <- nil
 				close(updateDictionary)
 
 				// Break out of the loop and allow the next process to send the data, otherwise all data will always be sent from one location
@@ -210,7 +208,6 @@ func SendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpda
 	go client.DictionaryUpdate(ipAddress, updateDictionary)
 
 	updateDictionary <- update
-	updateDictionary <- nil
 	close(updateDictionary)
 	return nil
 }

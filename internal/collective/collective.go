@@ -134,6 +134,7 @@ func determineIpAddress() string {
 	discoverLocalIp := func() string {
 		conn, err := net.Dial("udp", "8.8.8.8:80")
 		if err != nil {
+			log.Fatal("here i am - discoverLocalIp")
 			log.Fatal(err)
 		}
 		defer conn.Close()
@@ -246,8 +247,8 @@ func retrieveDataDictionary() {
 	collectiveMainBrokers := os.Getenv("COLLECTIVE_MAIN_BROKERS")
 	if collectiveMainBrokers != "" {
 		collectiveBrokers = strings.Split(collectiveMainBrokers, ",")
+		log.Println(collectiveBrokers)
 	}
-	log.Println(collectiveBrokers)
 
 	// if COLLECTIVE_MAIN_BROKERS is populated, then use first
 	if len(collectiveBrokers) > 0 {
@@ -489,7 +490,6 @@ func terminateReplicas() (err error) {
 					}
 
 				} else {
-					disperseData <- nil
 					close(disperseData)
 					break
 				}
@@ -551,7 +551,6 @@ func terminateReplicas() (err error) {
 				}
 			}
 		}
-		updateDictionary <- nil
 		close(updateDictionary)
 
 		// Remove this node from the collective database
