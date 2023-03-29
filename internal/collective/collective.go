@@ -134,7 +134,6 @@ func determineIpAddress() string {
 	discoverLocalIp := func() string {
 		conn, err := net.Dial("udp", "8.8.8.8:80")
 		if err != nil {
-			log.Fatal("here i am - discoverLocalIp")
 			log.Fatal(err)
 		}
 		defer conn.Close()

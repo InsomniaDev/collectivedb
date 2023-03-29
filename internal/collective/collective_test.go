@@ -1,11 +1,13 @@
 package collective
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/insomniadev/collective-db/internal/data"
 	"github.com/insomniadev/collective-db/internal/node"
@@ -339,6 +341,9 @@ func Test_terminateReplicas(t *testing.T) {
 			if err := terminateReplicas(); (err != nil) != tt.wantErr {
 				t.Errorf("terminateReplicas() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			time.Sleep(1 * time.Second)
+			fmt.Println("here to test")
+			// TODO: logic isn't working correctly, we need to check and verify what the actual data looks like here
 		})
 	}
 }
