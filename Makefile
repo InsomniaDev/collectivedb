@@ -26,5 +26,5 @@ build: fmt set-env-os-linux set-env-arch
 
 # TODO: Work through race flag exceptions `go test --cover --race ./... `
 test: fmt clean
-	go test --cover ./... 
+	go test -timeout 30s --cover ./... 
 	make clean

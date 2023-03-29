@@ -166,12 +166,9 @@ func Test_determineReplicas(t *testing.T) {
 	}
 }
 
-// TODO: Fix failing test
 func Test_distributeData(t *testing.T) {
-	//  TODO: fix the `ReplicaDataUpdate stream.RecordRoute: stream.Send(key:"key"  database:"test"  data:"value"  replicaNodeGroup:1  secondaryNodeGroup:2) failed: EOF` error
 	node.Collective = types.Controller{}
 	node.Collective.ReplicaNodeGroup = 1
-	node.Collective.IpAddress = "127.0.0.1:9090"
 	node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
 		{
 			ReplicaNodeGroup: 1,
@@ -316,6 +313,41 @@ func Test_addToDataDictionary(t *testing.T) {
 }
 
 func Test_removeDataFromSecondaryNodeGroup(t *testing.T) {
+	node.Collective.Data.DataLocations = []types.Data{
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          "1",
+			Database:         "test",
+		},
+		{
+			ReplicaNodeGroup: 2,
+			DataKey:          "2",
+			Database:         "test",
+		},
+	}
+	node.Collective.ReplicaNodeGroup = 1
+	node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
+		{
+			ReplicaNodeGroup: 1,
+			ReplicaNodes: []types.Node{
+				{
+					NodeId:    "1",
+					IpAddress: "127.0.0.1:9090",
+				},
+			},
+			SecondaryNodeGroup: 2,
+		},
+		{
+			ReplicaNodeGroup: 2,
+			ReplicaNodes: []types.Node{
+				{
+					NodeId:    "2",
+					IpAddress: "127.0.0.1:9090",
+				},
+			},
+		},
+	}
+
 	type args struct {
 		secondaryGroup int
 	}
@@ -324,8 +356,20 @@ func Test_removeDataFromSecondaryNodeGroup(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
-
+		{
+			name: "Success",
+			args: args{
+				secondaryGroup: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Failure",
+			args: args{
+				secondaryGroup: 3,
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -337,11 +381,51 @@ func Test_removeDataFromSecondaryNodeGroup(t *testing.T) {
 }
 
 func Test_terminateReplicas(t *testing.T) {
+	node.Collective.ReplicaNodeGroup = 1
+	key := "test"
+	bucket := "test"
+	newData := []byte("hello")
+	replicaCount = 3
+	data.StoreDataInDatabase(&key, &bucket, &newData, false, 0)
+	node.Collective.ReplicaNodeIds = []string{node.Collective.NodeId}
+	node.Collective.Data.DataLocations = []types.Data{
+		{
+			ReplicaNodeGroup: 1,
+			DataKey:          "test",
+			Database:         "test",
+		},
+	}
+	node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
+		{
+			ReplicaNodeGroup: 1,
+			ReplicaNodes: []types.Node{
+				{
+					NodeId:    "1",
+					IpAddress: "127.0.0.1:9090",
+				},
+			},
+			SecondaryNodeGroup: 2,
+		},
+		{
+			ReplicaNodeGroup: 2,
+			ReplicaNodes: []types.Node{
+				{
+					NodeId:    "2",
+					IpAddress: "127.0.0.1:9090",
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		name    string
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name:    "Last Node in Collective",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

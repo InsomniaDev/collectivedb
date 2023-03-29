@@ -118,7 +118,8 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 			case "ALL":
 				DistributeData(key, bucket, data, secondaryNodeGroup)
 			case "NONE":
-				go DistributeData(key, bucket, data, secondaryNodeGroup)
+				// FIXME: Need to set so we don't do race conditions, but also allow to return without confirmations from replicas... hmmm...
+				DistributeData(key, bucket, data, secondaryNodeGroup)
 			}
 		}
 		return updated
