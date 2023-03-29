@@ -123,11 +123,12 @@ func DictionaryUpdate(update *types.DataUpdate) {
 			// Send the data to the api endpoint for the ReplicaUpdate function - ReplicaUpdate rpc
 			// initialize first call
 			updateDictionary := make(chan *proto.DataUpdates)
-			client.ReplicaUpdate(&Collective.ReplicaNodes[i].IpAddress, updateDictionary)
-
+			go client.ReplicaUpdate(&Collective.ReplicaNodes[i].IpAddress, updateDictionary)
+			
 			// Send the data into the dictionary update function
 			updateDictionary <- protoData
 			updateDictionary <- nil
+			close(updateDictionary)
 		}
 	}
 
@@ -144,11 +145,12 @@ func DictionaryUpdate(update *types.DataUpdate) {
 
 				// initialize first call
 				updateDictionary := make(chan *proto.DataUpdates)
-				client.DictionaryUpdate(&Collective.Data.CollectiveNodes[i+1].ReplicaNodes[0].IpAddress, updateDictionary)
+				go client.DictionaryUpdate(&Collective.Data.CollectiveNodes[i+1].ReplicaNodes[0].IpAddress, updateDictionary)
 
 				// Send the data into the dictionary update function
 				updateDictionary <- protoData
 				updateDictionary <- nil
+				close(updateDictionary)
 
 				// Break out of the loop and allow the next process to send the data, otherwise all data will always be sent from one location
 				break
@@ -205,9 +207,10 @@ func SendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpda
 
 	// Call the dictionary function before passing the data into the channel
 	// send the update to the first node in the list
-	client.DictionaryUpdate(ipAddress, updateDictionary)
+	go client.DictionaryUpdate(ipAddress, updateDictionary)
 
 	updateDictionary <- update
 	updateDictionary <- nil
+	close(updateDictionary)
 	return nil
 }

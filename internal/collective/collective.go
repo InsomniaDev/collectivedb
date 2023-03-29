@@ -328,9 +328,7 @@ func removeDataFromSecondaryNodeGroup(secondaryGroup int) error {
 
 	// create the channel to start deleting the data
 	deleteData := make(chan *proto.Data)
-	if err := client.DeleteData(&ipAddress, deleteData); err != nil {
-		return err
-	}
+	go client.DeleteData(&ipAddress, deleteData)
 
 	// cycle through the data for the entries that are for this secondaryGroup
 	for i := range node.Collective.Data.DataLocations {
@@ -343,6 +341,7 @@ func removeDataFromSecondaryNodeGroup(secondaryGroup int) error {
 			}
 		}
 	}
+	close(deleteData)
 	return nil
 }
 
@@ -471,13 +470,15 @@ func terminateReplicas() (err error) {
 
 		// Insert the data into the intended node so that there is no data loss
 		disperseData := make(chan *proto.Data)
-		client.DataUpdate(&node.Collective.Data.CollectiveNodes[randIndex].ReplicaNodes[0].IpAddress, disperseData)
+		go client.DataUpdate(&node.Collective.Data.CollectiveNodes[randIndex].ReplicaNodes[0].IpAddress, disperseData)
 
 		// Create channel to retrieve all of the stored data through the retrieveAllReplicaData function
 		replicaData := make(chan *types.StoredData)
+
+		// Convert the returned data into the correct type for the function
 		go func() {
-			for {
-				if storedData := <-replicaData; storedData != nil {
+			for storedData := range replicaData {
+				if storedData != nil {
 
 					// Send the data to the new decided node with the secondaryNodeGroup populated
 					disperseData <- &proto.Data{
@@ -489,6 +490,7 @@ func terminateReplicas() (err error) {
 
 				} else {
 					disperseData <- nil
+					close(disperseData)
 					break
 				}
 			}
@@ -531,7 +533,7 @@ func terminateReplicas() (err error) {
 	if len(node.Collective.ReplicaNodes) == 1 && node.Collective.ReplicaNodes[0].NodeId == node.Collective.NodeId {
 		// Update all of the DataLocations to have the secondaryNodeGroup now
 		updateDictionary := make(chan *proto.DataUpdates)
-		client.DictionaryUpdate(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
+		go client.DictionaryUpdate(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
 		for i := range node.Collective.Data.DataLocations {
 			// IF the data is for this replicaNodeGroup
 			if node.Collective.Data.DataLocations[i].ReplicaNodeGroup == node.Collective.ReplicaNodeGroup {
@@ -550,6 +552,7 @@ func terminateReplicas() (err error) {
 			}
 		}
 		updateDictionary <- nil
+		close(updateDictionary)
 
 		// Remove this node from the collective database
 		if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{

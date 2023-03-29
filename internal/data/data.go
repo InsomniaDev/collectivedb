@@ -39,9 +39,10 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 		for i := range node.Collective.ReplicaNodes {
 			if node.Collective.ReplicaNodes[i].NodeId != node.Collective.NodeId {
 				updateReplica := make(chan *proto.Data)
-				client.ReplicaDataUpdate(&node.Collective.ReplicaNodes[i].IpAddress, updateReplica)
+				go client.ReplicaDataUpdate(&node.Collective.ReplicaNodes[i].IpAddress, updateReplica)
 				updateReplica <- dataUpdate
 				updateReplica <- nil
+				close(updateReplica)
 			}
 		}
 
@@ -51,9 +52,10 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 				if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryNodeGroup {
 					for j := range node.Collective.Data.CollectiveNodes[i].ReplicaNodes {
 						updateReplica := make(chan *proto.Data)
-						client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[j].IpAddress, updateReplica)
+						go client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[j].IpAddress, updateReplica)
 						updateReplica <- dataUpdate
 						updateReplica <- nil
+						close(updateReplica)
 					}
 
 					// IF this replicaGroup is not complete and has a secondaryNodeGroup, THEN forward to all nodes in that group as well
@@ -64,9 +66,10 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 								dataUpdate.SecondaryNodeGroup = int32(node.Collective.Data.CollectiveNodes[i].SecondaryNodeGroup)
 
 								updateReplica := make(chan *proto.Data)
-								client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, updateReplica)
+								go client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[j].ReplicaNodes[0].IpAddress, updateReplica)
 								updateReplica <- dataUpdate
 								updateReplica <- nil
+								close(updateReplica)
 								break
 							}
 						}
@@ -152,7 +155,7 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 			log.Println(node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress)
 
 			protoData := make(chan *proto.Data)
-			err := client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, protoData)
+			go client.ReplicaDataUpdate(&node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress, protoData)
 
 			protoData <- &proto.Data{
 				Key:              *key,
@@ -161,13 +164,14 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 				ReplicaNodeGroup: int32(dataVolume.ReplicaNodeGroup),
 			}
 			protoData <- nil
+			close(protoData)
 
 			// return the boolean from this call
-			if err != nil {
-				return false, nil
-			} else {
-				return true, key
-			}
+			// if err != nil {
+			// 	return false, nil
+			// } else {
+			return true, key
+			// }
 		}
 	}
 	return false, nil
