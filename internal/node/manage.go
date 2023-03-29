@@ -205,7 +205,7 @@ func SendClientUpdateDictionaryRequest(ipAddress *string, update *proto.DataUpda
 
 	// Call the dictionary function before passing the data into the channel
 	// send the update to the first node in the list
-	go client.DictionaryUpdate(ipAddress, updateDictionary)
+	client.DictionaryUpdate(ipAddress, updateDictionary)
 
 	updateDictionary <- update
 	updateDictionary <- nil

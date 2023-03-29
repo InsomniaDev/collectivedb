@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/insomniadev/collective-db/internal/data"
@@ -531,10 +530,8 @@ func terminateReplicas() (err error) {
 	// Delete this replica group from the collective
 	if len(node.Collective.ReplicaNodes) == 1 && node.Collective.ReplicaNodes[0].NodeId == node.Collective.NodeId {
 		// Update all of the DataLocations to have the secondaryNodeGroup now
-		var wg sync.WaitGroup
-		wg.Add(1)
 		updateDictionary := make(chan *proto.DataUpdates)
-		go client.DictionaryUpdate(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary, &wg)
+		client.DictionaryUpdate(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, updateDictionary)
 		for i := range node.Collective.Data.DataLocations {
 			// IF the data is for this replicaNodeGroup
 			if node.Collective.Data.DataLocations[i].ReplicaNodeGroup == node.Collective.ReplicaNodeGroup {
@@ -553,7 +550,6 @@ func terminateReplicas() (err error) {
 			}
 		}
 		updateDictionary <- nil
-		wg.Wait()
 
 		// Remove this node from the collective database
 		if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
