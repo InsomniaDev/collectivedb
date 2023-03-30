@@ -132,6 +132,7 @@ func DictionaryUpdate(update *types.DataUpdate) {
 	}
 
 	// Send to the next replica group in the list
+	CollectiveMemoryMutex.RLock()
 	for i := range Collective.Data.CollectiveNodes {
 		// Go to where this node group is in the array
 		if Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == Collective.ReplicaNodeGroup {
@@ -155,30 +156,35 @@ func DictionaryUpdate(update *types.DataUpdate) {
 			}
 		}
 	}
+	CollectiveMemoryMutex.RUnlock()
 }
 
 // AddToDataDictionary
 //
 //	Will add the data structure to the dictionary, or update the location
 func AddToDataDictionary(dataToInsert types.Data) (updateType int) {
-	CollectiveMemoryMutex.Lock()
 
+	CollectiveMemoryMutex.RLock()
 	for i := range Collective.Data.DataLocations {
 		if Collective.Data.DataLocations[i].DataKey == dataToInsert.DataKey {
 			// already exists, so check if the data matches
+			CollectiveMemoryMutex.RUnlock()
+			CollectiveMemoryMutex.Lock()
 			Collective.Data.DataLocations[i] = dataToInsert
+			CollectiveMemoryMutex.Unlock()
 
 			// Unlock and return
-			CollectiveMemoryMutex.Unlock()
 			return types.UPDATE
 		}
 	}
+	CollectiveMemoryMutex.RUnlock()
 
 	// if the data doesn't exist already
+	CollectiveMemoryMutex.Lock()
 	Collective.Data.DataLocations = append(Collective.Data.DataLocations, dataToInsert)
+	CollectiveMemoryMutex.Unlock()
 
 	// Unlock and return
-	CollectiveMemoryMutex.Unlock()
 	return types.NEW
 }
 
@@ -186,11 +192,13 @@ func AddToDataDictionary(dataToInsert types.Data) (updateType int) {
 // Will retrieve the key from the dictionary if it exists
 func RetrieveFromDataDictionary(key *string) (data types.Data) {
 
+	CollectiveMemoryMutex.RLock()
 	for i := range Collective.Data.DataLocations {
 		if Collective.Data.DataLocations[i].DataKey == *key {
 			return Collective.Data.DataLocations[i]
 		}
 	}
+	CollectiveMemoryMutex.RUnlock()
 
 	return
 }

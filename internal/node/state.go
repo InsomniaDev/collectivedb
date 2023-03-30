@@ -11,5 +11,5 @@ var (
 
 	Collective types.Controller // holds the data for the collective
 
-	CollectiveMemoryMutex sync.Mutex
+	CollectiveMemoryMutex sync.RWMutex
 )

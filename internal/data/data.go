@@ -51,6 +51,7 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 
 		// Double check that the secondaryNodeGroup is 0 before starting to process
 		if secondaryNodeGroup != 0 {
+			node.CollectiveMemoryMutex.RLock()
 			for i := range node.Collective.Data.CollectiveNodes {
 				if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryNodeGroup {
 					for j := range node.Collective.Data.CollectiveNodes[i].ReplicaNodes {
@@ -72,14 +73,16 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 					}
 				}
 			}
+			node.CollectiveMemoryMutex.RUnlock()
 		}
 
 		// Only update the data dictionary with this data if it was not sent here as part of the secondaryNodeGroup
 		if secondaryNodeGroup != node.Collective.ReplicaNodeGroup {
 
-			// Add this node to the DataDictionary
+			// Add this node to the DataDictionary -- this function contains a mutex lock
 			updateType := node.AddToDataDictionary(newData)
 
+			node.CollectiveMemoryMutex.RLock()
 			if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 				CollectiveUpdate: &proto.CollectiveDataUpdate{
 					Update:     true,
@@ -91,8 +94,10 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 					},
 				},
 			}); err != nil {
+				node.CollectiveMemoryMutex.RUnlock()
 				return err
 			}
+			node.CollectiveMemoryMutex.RUnlock()
 		}
 
 	}
@@ -144,6 +149,7 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 	}
 
 	// Update the data on the different node
+	node.CollectiveMemoryMutex.RLock()
 	for i := range node.Collective.Data.CollectiveNodes {
 		if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == dataVolume.ReplicaNodeGroup {
 			// Send the data to the leader for that replica group - DataUpdate rpc
@@ -164,16 +170,19 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 			// if err != nil {
 			// 	return false, nil
 			// } else {
+			node.CollectiveMemoryMutex.RUnlock()
 			return true, key
 			// }
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 	return false, nil
 }
 
 // RetrieveAllReplicaData
 // Will return with all of the replicated data
 func RetrieveAllReplicaData(inputData chan<- *types.StoredData) {
+	node.CollectiveMemoryMutex.RLock()
 	for i := range node.Collective.Data.DataLocations {
 		if node.Collective.Data.DataLocations[i].ReplicaNodeGroup == node.Collective.ReplicaNodeGroup {
 			if exists, data := RetrieveDataFromDatabase(&node.Collective.Data.DataLocations[i].DataKey, &node.Collective.Data.DataLocations[i].Database); exists {
@@ -186,6 +195,7 @@ func RetrieveAllReplicaData(inputData chan<- *types.StoredData) {
 			}
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 	inputData <- nil
 }
 
@@ -197,6 +207,7 @@ func RetrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 
 	// The data does not exist on this node
 	// Determine what node the data exists on
+	node.CollectiveMemoryMutex.RLock()
 	for i := range node.Collective.Data.DataLocations {
 		if node.Collective.Data.DataLocations[i].DataKey == *key {
 
@@ -210,13 +221,16 @@ func RetrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 						ReplicaNodeGroup: int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
 					})
 					if err != nil {
+						node.CollectiveMemoryMutex.RUnlock()
 						return false, nil
 					}
+					node.CollectiveMemoryMutex.RUnlock()
 					return true, &data.Data
 				}
 			}
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 
 	// If data is not found on one replica node, it should attempt to pull from at least two nodes before declaring data doesn't exist
 	// This should attempt to grab data from the ReplicatedNodes list
@@ -233,6 +247,7 @@ func DeleteDataFromDatabase(key, bucket *string) (bool, error) {
 
 	// The data does not exist on this node
 	// Determine what node the data exists on
+	node.CollectiveMemoryMutex.RLock()
 	for i := range node.Collective.Data.DataLocations {
 		if node.Collective.Data.DataLocations[i].DataKey == *key {
 
@@ -246,9 +261,11 @@ func DeleteDataFromDatabase(key, bucket *string) (bool, error) {
 				ReplicaNodeGroup: int32(node.Collective.Data.DataLocations[i].ReplicaNodeGroup),
 			}
 			close(deleteData)
+			node.CollectiveMemoryMutex.RUnlock()
 			return true, nil
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 
 	return false, nil
 }

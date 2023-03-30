@@ -221,6 +221,7 @@ func retrieveDataDictionary() {
 
 	// Create a new collective cluster
 	createNewCollective := func() {
+		node.CollectiveMemoryMutex.Lock()
 		node.Collective.Data.CollectiveNodes = []types.ReplicaGroup{
 			{
 				ReplicaNodeGroup:   1,
@@ -240,6 +241,7 @@ func retrieveDataDictionary() {
 				IpAddress: node.Collective.IpAddress,
 			},
 		}
+		node.CollectiveMemoryMutex.Unlock()
 	}
 
 	collectiveBrokers := []string{}
@@ -316,12 +318,14 @@ func removeDataFromSecondaryNodeGroup(secondaryGroup int) error {
 
 	// get the ipAddress for the leader of the secondary node group
 	ipAddress := ""
+	node.CollectiveMemoryMutex.RLock()
 	for i := range node.Collective.Data.CollectiveNodes {
 		if node.Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == secondaryGroup {
 			// This ipAddress is very important, if done incorrectly we can suffer massive data loss
 			ipAddress = node.Collective.Data.CollectiveNodes[i].ReplicaNodes[0].IpAddress
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 	if ipAddress == "" {
 		return fmt.Errorf("secondary group doesn't exist: %d", secondaryGroup)
 	}
@@ -330,6 +334,7 @@ func removeDataFromSecondaryNodeGroup(secondaryGroup int) error {
 	deleteData := make(chan *proto.Data)
 	go client.DeleteData(&ipAddress, deleteData)
 
+	node.CollectiveMemoryMutex.RLock()
 	// cycle through the data for the entries that are for this secondaryGroup
 	for i := range node.Collective.Data.DataLocations {
 		// IF the data is set for this replicaGroup
@@ -341,6 +346,7 @@ func removeDataFromSecondaryNodeGroup(secondaryGroup int) error {
 			}
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 	close(deleteData)
 	return nil
 }
@@ -358,17 +364,24 @@ func determineReplicas() (err error) {
 	// 				Set the secondaryNodeGroup immediately
 
 	// If there is only one node in the cluster, then there is nothing to work through, so just return
+	node.CollectiveMemoryMutex.RLock()
 	if len(node.Collective.Data.CollectiveNodes) == 1 && len(node.Collective.Data.CollectiveNodes[0].ReplicaNodes) == 1 {
+		node.CollectiveMemoryMutex.RUnlock()
 		return nil
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 
+	node.CollectiveMemoryMutex.RLock()
 	// Cycle through the collective replica groups and determine if there is a new group
 	for _, rg := range node.Collective.Data.CollectiveNodes {
 		// if it is not a full replica group
 		if !rg.FullGroup {
+			node.CollectiveMemoryMutex.RUnlock()
+			node.CollectiveMemoryMutex.Lock()
 			// Determine if there are more nodes in the group than the replica count
 			if len(rg.ReplicaNodes) > replicaCount {
 				// We don't want to add to a replica group that is already oversized
+				node.CollectiveMemoryMutex.Unlock()
 				return errors.New("too many nodes in replica currently")
 			}
 
@@ -393,6 +406,7 @@ func determineReplicas() (err error) {
 				// Clean up - remove this replica group data from the secondaryNodeGroup
 				// since we are now a full group, then delete all of the data from the secondary node group
 				if err := removeDataFromSecondaryNodeGroup(rg.ReplicaNodeGroup); err != nil {
+					node.CollectiveMemoryMutex.Unlock()
 					return err
 				}
 			}
@@ -421,6 +435,7 @@ func determineReplicas() (err error) {
 					},
 				},
 			}); err != nil {
+				node.CollectiveMemoryMutex.Unlock()
 				return err
 			}
 
@@ -428,12 +443,15 @@ func determineReplicas() (err error) {
 			go syncData()
 
 			// do not go through process of pulling in new data
+			node.CollectiveMemoryMutex.Unlock()
 			return
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 
 	// If all groups are full then we should immediately create a new group,
 	// 		the new group needs to have the secondaryNodeGroup set
+	node.CollectiveMemoryMutex.RLock()
 	randIndex := rand.Intn(len(node.Collective.Data.CollectiveNodes))
 	if err := node.SendClientUpdateDictionaryRequest(&node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress, &proto.DataUpdates{
 		ReplicaUpdate: &proto.CollectiveReplicaUpdate{
@@ -450,8 +468,10 @@ func determineReplicas() (err error) {
 			},
 		},
 	}); err != nil {
+		node.CollectiveMemoryMutex.RUnlock()
 		return err
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 
 	return nil
 }
@@ -460,6 +480,7 @@ func determineReplicas() (err error) {
 //
 // When this node shuts down, this function will ensure that there is no data loss and will offload data to other nodes if required
 func terminateReplicas() (err error) {
+	// Let's not do any mutex locks - the goal is to get this data out of here as fast as possible
 
 	// We only want this functionality to run IF this is currently a full replicaGroup and will no longer be full
 	// 		distribute the existing data into the newly created secondaryNodeGroup

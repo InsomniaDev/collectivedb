@@ -83,6 +83,7 @@ func (s *grpcServer) SyncCollectiveRequest(syncIpAddress *proto.SyncIp, stream p
 	}(storedData)
 
 	// Cycle through the data and return
+	node.CollectiveMemoryMutex.RLock()
 	for i := range node.Collective.Data.CollectiveNodes {
 		replicaNodes := []*proto.ReplicaNodes{}
 		for j := range node.Collective.Data.CollectiveNodes[i].ReplicaNodes {
@@ -117,8 +118,8 @@ func (s *grpcServer) SyncCollectiveRequest(syncIpAddress *proto.SyncIp, stream p
 				},
 			},
 		}
-
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 	storedData <- nil
 
 	// Wait until all stream data has been sent
@@ -159,6 +160,7 @@ func (s *grpcServer) SyncDataRequest(syncIpAddress *proto.SyncIp, stream proto.R
 	}(storedData)
 
 	// Request the data to be returned
+	node.CollectiveMemoryMutex.RLock()
 	for i := range node.Collective.Data.DataLocations {
 		if node.Collective.Data.DataLocations[i].ReplicaNodeGroup == node.Collective.ReplicaNodeGroup {
 			if exists, value := database.Get(&node.Collective.Data.DataLocations[i].DataKey, &node.Collective.Data.DataLocations[i].Database); exists {
@@ -171,6 +173,7 @@ func (s *grpcServer) SyncDataRequest(syncIpAddress *proto.SyncIp, stream proto.R
 			}
 		}
 	}
+	node.CollectiveMemoryMutex.RUnlock()
 	storedData <- nil
 
 	// Wait until all stream data has been sent
