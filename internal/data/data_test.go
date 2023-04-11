@@ -10,7 +10,6 @@ import (
 )
 
 func TestStoreDataInDatabase(t *testing.T) {
-	// TODO: add tests to handle secondaryNodeGroup functionality
 
 	key := "test"
 	bucket := "test"

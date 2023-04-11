@@ -66,6 +66,7 @@ func Test_removeFromDictionarySlice(t *testing.T) {
 }
 
 func TestCollectiveUpdate(t *testing.T) {
+
 	type args struct {
 		update *types.DataUpdate
 	}
@@ -73,11 +74,148 @@ func TestCollectiveUpdate(t *testing.T) {
 		name string
 		args args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "DataNew",
+			args: args{
+				update: &types.DataUpdate{
+					DataUpdate: types.CollectiveDataUpdate{
+						Update:     true,
+						UpdateType: types.NEW,
+						UpdateData: types.Data{
+							ReplicaNodeGroup: 1,
+							DataKey:          "12",
+							Database:         "test",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "DataUpdate",
+			args: args{
+				update: &types.DataUpdate{
+					DataUpdate: types.CollectiveDataUpdate{
+						Update:     true,
+						UpdateType: types.UPDATE,
+						UpdateData: types.Data{
+							ReplicaNodeGroup: 1,
+							DataKey:          "12",
+							Database:         "testit",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "DataDelete",
+			args: args{
+				update: &types.DataUpdate{
+					DataUpdate: types.CollectiveDataUpdate{
+						Update:     true,
+						UpdateType: types.DELETE,
+						UpdateData: types.Data{
+							ReplicaNodeGroup: 1,
+							DataKey:          "12",
+							Database:         "testit",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "ReplicaNew",
+			args: args{
+				update: &types.DataUpdate{
+					ReplicaUpdate: types.CollectiveReplicaUpdate{
+						Update: true,
+						UpdateType: types.NEW,
+						UpdateReplica: types.ReplicaGroup{
+							ReplicaNodeGroup: 1,
+							SecondaryNodeGroup: 2,
+							ReplicaNodes: []types.Node{
+								{
+									NodeId: "1234",
+									IpAddress: "123",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "ReplicaUpdate",
+			args: args{
+				update: &types.DataUpdate{
+					ReplicaUpdate: types.CollectiveReplicaUpdate{
+						Update: true,
+						UpdateType: types.UPDATE,
+						UpdateReplica: types.ReplicaGroup{
+							ReplicaNodeGroup: 1,
+							SecondaryNodeGroup: 2,
+							ReplicaNodes: []types.Node{
+								{
+									NodeId: "12345",
+									IpAddress: "123",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "ReplicaDelete",
+			args: args{
+				update: &types.DataUpdate{
+					ReplicaUpdate: types.CollectiveReplicaUpdate{
+						Update: true,
+						UpdateType: types.DELETE,
+						UpdateReplica: types.ReplicaGroup{
+							ReplicaNodeGroup: 1,
+							SecondaryNodeGroup: 2,
+							ReplicaNodes: []types.Node{
+								{
+									NodeId: "1234",
+									IpAddress: "123",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			CollectiveUpdate(tt.args.update)
+
+			switch tt.name {
+			case "DataNew":
+				if !reflect.DeepEqual(tt.args.update.DataUpdate.UpdateData, Collective.Data.DataLocations[0]) {
+					t.Errorf("New Data = %v, want stored data to be = %v", tt.args.update.DataUpdate.UpdateData, Collective.Data.DataLocations[0])
+				}
+			case "DataUpdate":
+				if !reflect.DeepEqual(tt.args.update.DataUpdate.UpdateData, Collective.Data.DataLocations[0]) {
+					t.Errorf("Update Data = %v, want stored data to be = %v", tt.args.update.DataUpdate.UpdateData, Collective.Data.DataLocations[0])
+				}
+			case "DataDelete":
+				if len(Collective.Data.DataLocations) != 0 {
+					t.Errorf("Delete Data, expected 0 length, got %d", len(Collective.Data.DataLocations))
+				}
+			case "ReplicaNew":
+				if !reflect.DeepEqual(tt.args.update.ReplicaUpdate.UpdateReplica, Collective.Data.CollectiveNodes[0]) {
+					t.Errorf("New Data = %v, want stored data to be = %v", tt.args.update.ReplicaUpdate.UpdateReplica, Collective.Data.CollectiveNodes[0])
+				}
+			case "ReplicaUpdate":
+				if !reflect.DeepEqual(tt.args.update.ReplicaUpdate.UpdateReplica, Collective.Data.CollectiveNodes[0]) {
+					t.Errorf("Update Data = %v, want stored data to be = %v", tt.args.update.ReplicaUpdate.UpdateReplica, Collective.Data.CollectiveNodes[0])
+				}
+			case "ReplicaDelete":
+				if len(Collective.Data.CollectiveNodes) != 0 {
+					t.Errorf("Delete Data, expected 0 length, got %d", len(Collective.Data.CollectiveNodes))
+				}
+			}
 		})
 	}
 }

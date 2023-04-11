@@ -119,10 +119,6 @@ func determineIpAddress() string {
 		return envIp
 	}
 
-	envIp = os.Getenv("COLLECTIVE_IP")
-
-	// FIXME: Can't we just take the provided master node IP and then have that send us back what our IP is?
-
 	resolverFile := "/etc/resolv.conf"
 	// Check if resolver file is provided
 	envResolverFile := os.Getenv("COLLECTIVE_RESOLVER_FILE")
@@ -189,6 +185,10 @@ func determineIpAddress() string {
 		dnsLocalIp := fmt.Sprintf("%s.%s", formattedIp, formattedDnsRoute)
 		return dnsLocalIp + ":9090"
 	}
+
+	envIp = os.Getenv("COLLECTIVE_IP")
+	// FIXME: Take this envIp and create a POST request to the leader node to respond with what our IP address is
+	// 		What use cases would this solve?
 
 	return discoverLocalIp()
 }

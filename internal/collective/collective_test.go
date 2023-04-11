@@ -330,7 +330,6 @@ func Test_terminateReplicas(t *testing.T) {
 		name    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
 			name:    "Last Node in Collective",
 			wantErr: false,
@@ -343,7 +342,6 @@ func Test_terminateReplicas(t *testing.T) {
 			}
 			time.Sleep(1 * time.Second)
 			fmt.Println("here to test")
-			// TODO: logic isn't working correctly, we need to check and verify what the actual data looks like here
 		})
 	}
 }
@@ -370,7 +368,6 @@ func Test_retrieveDataDictionary(t *testing.T) {
 	tests := []struct {
 		name string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "New_Cluster",
 		},
