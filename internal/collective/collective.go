@@ -592,3 +592,4 @@ func terminateReplicas() (err error) {
 
 	return nil
 }
+

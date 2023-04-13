@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
@@ -127,14 +126,14 @@ func TestCollectiveUpdate(t *testing.T) {
 			args: args{
 				update: &types.DataUpdate{
 					ReplicaUpdate: types.CollectiveReplicaUpdate{
-						Update: true,
+						Update:     true,
 						UpdateType: types.NEW,
 						UpdateReplica: types.ReplicaGroup{
-							ReplicaNodeGroup: 1,
+							ReplicaNodeGroup:   1,
 							SecondaryNodeGroup: 2,
 							ReplicaNodes: []types.Node{
 								{
-									NodeId: "1234",
+									NodeId:    "1234",
 									IpAddress: "123",
 								},
 							},
@@ -148,14 +147,14 @@ func TestCollectiveUpdate(t *testing.T) {
 			args: args{
 				update: &types.DataUpdate{
 					ReplicaUpdate: types.CollectiveReplicaUpdate{
-						Update: true,
+						Update:     true,
 						UpdateType: types.UPDATE,
 						UpdateReplica: types.ReplicaGroup{
-							ReplicaNodeGroup: 1,
+							ReplicaNodeGroup:   1,
 							SecondaryNodeGroup: 2,
 							ReplicaNodes: []types.Node{
 								{
-									NodeId: "12345",
+									NodeId:    "12345",
 									IpAddress: "123",
 								},
 							},
@@ -169,14 +168,14 @@ func TestCollectiveUpdate(t *testing.T) {
 			args: args{
 				update: &types.DataUpdate{
 					ReplicaUpdate: types.CollectiveReplicaUpdate{
-						Update: true,
+						Update:     true,
 						UpdateType: types.DELETE,
 						UpdateReplica: types.ReplicaGroup{
-							ReplicaNodeGroup: 1,
+							ReplicaNodeGroup:   1,
 							SecondaryNodeGroup: 2,
 							ReplicaNodes: []types.Node{
 								{
-									NodeId: "1234",
+									NodeId:    "1234",
 									IpAddress: "123",
 								},
 							},
@@ -258,27 +257,6 @@ func TestRetrieveFromDataDictionary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotData := RetrieveFromDataDictionary(tt.args.key); !reflect.DeepEqual(gotData, tt.wantData) {
 				t.Errorf("retrieveFromDataDictionary() = %v, want %v", gotData, tt.wantData)
-			}
-		})
-	}
-}
-
-func Test_sendClientUpdateDictionaryRequest(t *testing.T) {
-	type args struct {
-		ipAddress *string
-		update    *proto.DataUpdates
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := SendClientUpdateDictionaryRequest(tt.args.ipAddress, tt.args.update); (err != nil) != tt.wantErr {
-				t.Errorf("sendClientUpdateDictionaryRequest() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
