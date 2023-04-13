@@ -1,7 +1,5 @@
 package server
 
-// TODO: Add unit tests for this file
-
 import (
 	context "context"
 	"io"
