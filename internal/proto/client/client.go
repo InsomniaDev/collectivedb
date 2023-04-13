@@ -1,7 +1,5 @@
 package client
 
-// TODO: Add unit tests for this file
-
 import (
 	"context"
 	"io"
@@ -69,7 +67,7 @@ func SyncCollectiveRequest(ipAddress *string, data chan<- *types.DataUpdate) err
 				data <- nil
 				return err
 			}
-			data <- convertDataUpdatesToControlDataUpdate(in)
+			data <- ConvertDataUpdatesToControlDataUpdate(in)
 		}
 	}
 

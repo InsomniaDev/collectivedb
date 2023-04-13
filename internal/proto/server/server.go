@@ -12,6 +12,7 @@ import (
 	"github.com/insomniadev/collective-db/internal/database"
 	"github.com/insomniadev/collective-db/internal/node"
 	"github.com/insomniadev/collective-db/internal/proto"
+	"github.com/insomniadev/collective-db/internal/proto/client"
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
@@ -43,7 +44,7 @@ func (s *grpcServer) ReplicaUpdate(stream proto.RouteGuide_ReplicaUpdateServer) 
 
 		// Lock the dictionary so that an update can occur here
 		s.dictionary_mu.Lock()
-		node.CollectiveUpdate(convertDataUpdatesToControlDataUpdate(in))
+		node.CollectiveUpdate(client.ConvertDataUpdatesToControlDataUpdate(in))
 		s.dictionary_mu.Unlock()
 
 		if err := stream.Send(&proto.Updated{
@@ -198,7 +199,7 @@ func (s *grpcServer) DictionaryUpdate(stream proto.RouteGuide_DictionaryUpdateSe
 		// Lock the dictionary so that an update can occur here
 		s.dictionary_mu.Lock()
 		// control.CollectiveUpdate(convertDataUpdatesToControlDataUpdate(in))
-		node.DictionaryUpdate(convertDataUpdatesToControlDataUpdate(in))
+		node.DictionaryUpdate(client.ConvertDataUpdatesToControlDataUpdate(in))
 		s.dictionary_mu.Unlock()
 
 		if err := stream.Send(&proto.Updated{
