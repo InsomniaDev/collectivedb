@@ -70,6 +70,9 @@ func init() {
 
 	// Will assign replicas to this node
 	determineReplicas()
+
+	// Make this node active now
+	node.Active = true
 }
 
 // IsActive
@@ -592,4 +595,3 @@ func terminateReplicas() (err error) {
 
 	return nil
 }
-

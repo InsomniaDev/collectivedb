@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/insomniadev/collective-db/api"
 	"github.com/insomniadev/collective-db/internal/collective"
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/proto/server"
@@ -72,6 +73,7 @@ func main() {
 			log.Println("initializing")
 		}
 	}
+	api.Start()
 }
 
 // set a block to catch a SIG KILL or SIG TERM signal that will then fire off the terminateReplicas functionality
