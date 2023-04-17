@@ -486,6 +486,12 @@ func terminateReplicas() (err error) {
 	// TODO: this is not closing gracefully, need to fix
 	// 	2023/04/16 21:32:01 DictionaryUpdate stream.RecordRoute failed: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial tcp 192.168.1.211:9090: connect: connection refused"
 	// 2023/04/16 21:32:01 DictionaryUpdate stream.RecordRoute failed: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial tcp 192.168.1.211:9090: connect: connection refused"
+	//
+	// go run main.go
+	// 2023/04/16 21:37:52 failed to listen: listen tcp 127.0.0.1:9090: bind: address already in use
+	// exit status 1
+	// 
+	// It is not actually letting go of the grpc port, need to maybe set a deferred close or something
 
 	// Let's not do any mutex locks - the goal is to get this data out of here as fast as possible
 

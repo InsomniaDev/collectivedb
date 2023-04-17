@@ -26,7 +26,8 @@ var (
 	port     = flag.Int("port", 9090, "The port for data insertion; defaults 9090")
 	nodePort = flag.Int("nodePort", 9091, "The port for collective communication; defaults 9091")
 
-	sigs = make(chan os.Signal, 1)
+	sigs       = make(chan os.Signal, 1)
+	grpcServer *grpc.Server
 )
 
 // Setup the api
@@ -56,7 +57,7 @@ func main() {
 		}
 		opts = []grpc.ServerOption{grpc.Creds(creds)}
 	}
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer = grpc.NewServer(opts...)
 	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
 	go grpcServer.Serve(lis)
 
@@ -85,4 +86,5 @@ func handleAppClose() {
 	} else {
 		log.Println("Failed to successfully shutdown the node")
 	}
+	grpcServer.Stop()
 }
