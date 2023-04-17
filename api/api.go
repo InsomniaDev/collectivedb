@@ -43,7 +43,7 @@ func GetByDatabase(key, database string) []byte {
 
 func getByKey(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["id"]
-	fmt.Println(key)
+	// fmt.Println(key)
 
 	w.Write(Get(key))
 }
