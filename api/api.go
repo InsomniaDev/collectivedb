@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/insomniadev/collective-db/internal/data"
 )
 
 const collectiveDatabase = "collective"
@@ -28,8 +29,15 @@ func getWithDatabase(w http.ResponseWriter, r *http.Request) {
 	w.Write(GetByDatabase(key, database))
 }
 
+// GetByDatabase
+//
+// Will return the data from the database provided with the key provided
+//
+//	Returns a byte array
 func GetByDatabase(key, database string) []byte {
-	// TODO: Add logic
+	if exists, returnedData := data.RetrieveDataFromDatabase(&key, &database); exists {
+		return *returnedData
+	}
 	return nil
 }
 
@@ -72,8 +80,15 @@ func update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(400)
 }
 
-func UpdateByDatabase(key, database string, data []byte) bool {
-	// TODO: Add logic
+// UpdateByDatabase
+//
+// Will store the new data or will update the existing data in the provided location
+//
+//	Returns a boolean on if it was updated successfully
+func UpdateByDatabase(key, database string, newData []byte) bool {
+	if updated, _ := data.StoreDataInDatabase(&key, &database, &newData, false, 0); updated {
+		return updated
+	}
 	return false
 }
 
@@ -108,8 +123,17 @@ func delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(400)
 }
 
+// DeleteByDatabase
+// 
+// Deletes from the provided database with the provided key
+// 		Returns either a nil or an error
 func DeleteByDatabase(key, database string) error {
-	// TODO: Add logic
+	if deleted, err := data.DeleteDataFromDatabase(&key, &database); err != nil {
+		if !deleted {
+			log.Println("Not deleted correctely ", key, " ", database)
+		}
+		return err
+	}
 	return nil
 }
 

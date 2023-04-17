@@ -108,7 +108,9 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 // StoreDataInDatabase
 // will store the provided data into the database after checking if it requires an update first
 // if the data belongs with a different replica group, it will send the update request to that replica group
+// 		Returns a boolean on if it was updated successfully and the key updated
 func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, secondaryNodeGroup int) (bool, *string) {
+
 	ackLevel := os.Getenv("COLLECTIVE_ACK_LEVEL")
 	if ackLevel == "" {
 		ackLevel = "NONE"
@@ -127,6 +129,9 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 		}
 		return updated
 	}
+
+	// TODO: determine if there is a secondaryNodeGroup for the data if it is exists
+	
 
 	// Data is new and doesn't exist
 	// Create a unique key and update since this is new data
