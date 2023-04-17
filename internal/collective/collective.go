@@ -490,8 +490,14 @@ func terminateReplicas() (err error) {
 	// go run main.go
 	// 2023/04/16 21:37:52 failed to listen: listen tcp 127.0.0.1:9090: bind: address already in use
 	// exit status 1
-	// 
+	//
 	// It is not actually letting go of the grpc port, need to maybe set a deferred close or something
+
+	// If we only have one node group, then there is no need to distribute the data throughout all nodes
+	if len(node.Collective.Data.CollectiveNodes) == 1 {
+		log.Println("Only remaining node group")
+		return
+	}
 
 	// Let's not do any mutex locks - the goal is to get this data out of here as fast as possible
 

@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/insomniadev/collective-db/internal/data"
@@ -12,13 +14,33 @@ import (
 
 const collectiveDatabase = "collective"
 
+var apiServer *http.Server
+
 func Start() {
-	myRouter := mux.NewRouter().StrictSlash(true)
-	myRouter.HandleFunc("/get/{id}/{database}", getWithDatabase)
-	myRouter.HandleFunc("/get/{id}", getByKey)
-	myRouter.HandleFunc("/update", update)
-	myRouter.HandleFunc("/delete", delete)
-	log.Fatal(http.ListenAndServe(":10000", myRouter))
+	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/get/{id}/{database}", getWithDatabase)
+	router.HandleFunc("/get/{id}", getByKey)
+	router.HandleFunc("/update", update)
+	router.HandleFunc("/delete", delete)
+	apiServer = &http.Server{Addr: ":10000", Handler: router}
+	go func() {
+		if err := apiServer.ListenAndServe(); err != nil {
+			// handle err
+			panic(err)
+		}
+	}()
+}
+
+// Stop
+// Is responsible for killing the api server on application termination
+func Stop() {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := apiServer.Shutdown(ctx); err != nil {
+		// handle err
+		panic(err)
+	}
 }
 
 func getWithDatabase(w http.ResponseWriter, r *http.Request) {
@@ -124,9 +146,10 @@ func delete(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteByDatabase
-// 
+//
 // Deletes from the provided database with the provided key
-// 		Returns either a nil or an error
+//
+//	Returns either a nil or an error
 func DeleteByDatabase(key, database string) error {
 	if deleted, err := data.DeleteDataFromDatabase(&key, &database); err != nil {
 		if !deleted {

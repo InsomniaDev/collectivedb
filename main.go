@@ -87,4 +87,6 @@ func handleAppClose() {
 		log.Println("Failed to successfully shutdown the node")
 	}
 	grpcServer.Stop()
+	api.Stop()
+	os.Exit(0)
 }
