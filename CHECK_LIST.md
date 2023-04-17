@@ -1,14 +1,11 @@
 ## Need-To-Do
 
-### In-memory Database
-- [x] Create structs
-- [x] Hash to number and then round the decimal place of hash
-- [ ] For the first time creation without the total depth being reached, need to create
-- [x] Hash key needs to be randomly generated
-- [ ] Create tests for database.go
+### Backlog
+- [ ] Update to handle distribution of traffic when a new replication group is added
+- [ ] Fix race conditions with unit testing
+- [ ] Improve unit test coverage
+- [ ] Create integration test through the API layer
 
-
-- [ ] Documentation for database usage is hosted on docker images and webserver is enabled with a docker parameter
-    - [ ] Need to decide what documentation service to use. Github hosted docs?
-- [ ] In-memory database needs to be able to know from the key provided if it contains that value
-- [ ] Search for the memory in database
+### Features
+- [ ] Add prometheus integration 
+- [ ] Possibly need to buffer the writes to files to improve efficiency
