@@ -6,6 +6,8 @@ import (
 	"github.com/insomniadev/collective-db/internal/types"
 )
 
+// TODO: Set an overall environment level scenario here
+
 var (
 	Active bool // sets if this current node is active
 
