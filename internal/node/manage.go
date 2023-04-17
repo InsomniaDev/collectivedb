@@ -203,6 +203,21 @@ func RetrieveFromDataDictionary(key *string) (data types.Data) {
 	return
 }
 
+// RetrieveSecondaryNodeGroupForDataEntry
+// Will retrieve the secondaryNodeGroup of the provided replicaNodeGroup
+func RetrieveSecondaryNodeGroupForDataEntry(replicaNodeGroup *int) (secondaryNodeGroup int) {
+
+	CollectiveMemoryMutex.RLock()
+	for i := range Collective.Data.CollectiveNodes {
+		if Collective.Data.CollectiveNodes[i].ReplicaNodeGroup == *replicaNodeGroup {
+			return Collective.Data.CollectiveNodes[i].SecondaryNodeGroup
+		}
+	}
+	CollectiveMemoryMutex.RUnlock()
+
+	return
+}
+
 // SendClientUpdateDictionaryRequest
 //
 // extracted function that is used to send the update without all of the additional boilerplate code everywhere

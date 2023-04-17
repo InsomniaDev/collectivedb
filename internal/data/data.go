@@ -130,9 +130,6 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 		return updated
 	}
 
-	// TODO: determine if there is a secondaryNodeGroup for the data if it is exists
-	
-
 	// Data is new and doesn't exist
 	// Create a unique key and update since this is new data
 	if *key == "" {
@@ -146,6 +143,9 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 	// This data exists already
 	// Determine what node the data is on, if the data does exist on a node
 	dataVolume := node.RetrieveFromDataDictionary(key)
+	
+	// Determine if there is a secondaryNodeGroup for the data if it is exists
+	secondaryNodeGroup = node.RetrieveSecondaryNodeGroupForDataEntry(&dataVolume.ReplicaNodeGroup)
 
 	// If the data doesn't exist yet, but a key was provided OR data exists and needs to be updated OR this data was sent in with a secondaryNodeGroup equal to this one
 	if dataVolume.DataKey == "" || dataVolume.ReplicaNodeGroup == node.Collective.ReplicaNodeGroup || node.Collective.ReplicaNodeGroup == secondaryNodeGroup {

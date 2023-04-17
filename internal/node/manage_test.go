@@ -261,3 +261,47 @@ func TestRetrieveFromDataDictionary(t *testing.T) {
 		})
 	}
 }
+
+func TestRetrieveSecondaryNodeGroupForDataEntry(t *testing.T) {
+	Collective.Data.CollectiveNodes = []types.ReplicaGroup{
+		{
+			ReplicaNodeGroup:   1,
+			SecondaryNodeGroup: 2,
+		},
+		{
+			ReplicaNodeGroup: 2,
+		},
+	}
+
+	type args struct {
+		replicaNodeGroup *int
+	}
+	tests := []struct {
+		name                   string
+		args                   args
+		wantSecondaryNodeGroup int
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Has a node group",
+			args: args{
+				replicaNodeGroup: &Collective.Data.CollectiveNodes[0].ReplicaNodeGroup, // 1
+			},
+			wantSecondaryNodeGroup: 2,
+		},
+		{
+			name: "Doesn't have a second node group",
+			args: args{
+				replicaNodeGroup: &Collective.Data.CollectiveNodes[1].ReplicaNodeGroup, // 2
+			},
+			wantSecondaryNodeGroup: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotSecondaryNodeGroup := RetrieveSecondaryNodeGroupForDataEntry(tt.args.replicaNodeGroup); gotSecondaryNodeGroup != tt.wantSecondaryNodeGroup {
+				t.Errorf("RetrieveSecondaryNodeGroupForDataEntry() = %v, want %v", gotSecondaryNodeGroup, tt.wantSecondaryNodeGroup)
+			}
+		})
+	}
+}
