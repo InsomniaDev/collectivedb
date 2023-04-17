@@ -59,8 +59,7 @@ func main() {
 	}
 	grpcServer = grpc.NewServer(opts...)
 	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
-	go grpcServer.Serve(lis)
-
+	
 	quitAfterTenSeconds := 0
 	for {
 		if collective.IsActive() {
@@ -75,6 +74,7 @@ func main() {
 		}
 	}
 	api.Start()
+	grpcServer.Serve(lis)
 }
 
 // set a block to catch a SIG KILL or SIG TERM signal that will then fire off the terminateReplicas functionality
