@@ -4,6 +4,20 @@ import (
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/proto/client"
 	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	collectiveUpdates = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "collective_replica_updates",
+		Help: "The total number of replica events",
+	})
+
+	dataUpdates = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "collective_data_updates",
+		Help: "The total number of replica events",
+	})
 )
 
 // CollectiveUpdate
@@ -14,6 +28,9 @@ func CollectiveUpdate(update *types.DataUpdate) {
 
 	// If this is a data update
 	if update.DataUpdate.Update {
+		// update the prometheus count for the replica updates
+		collectiveUpdates.Inc()
+
 		// Update the data dictionary
 		switch update.DataUpdate.UpdateType {
 		case types.NEW:
@@ -37,6 +54,9 @@ func CollectiveUpdate(update *types.DataUpdate) {
 			}
 		}
 	} else if update.ReplicaUpdate.Update {
+		// update the prometheus count for the replica updates
+		dataUpdates.Inc()
+
 		// Update the data dictionary
 		switch update.ReplicaUpdate.UpdateType {
 		case types.NEW:

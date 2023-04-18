@@ -10,9 +10,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/insomniadev/collective-db/internal/data"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const collectiveDatabase = "collective"
+
+// TODO: wrap this http in this handler - https://github.com/prometheus/client_golang/blob/main/examples/middleware/httpmiddleware/httpmiddleware.go
 
 var apiServer *http.Server
 
@@ -22,6 +25,7 @@ func Start() {
 	router.HandleFunc("/get/{id}", getByKey)
 	router.HandleFunc("/update", update)
 	router.HandleFunc("/delete", delete)
+	router.Handle("/metrics", promhttp.Handler()) // Handler for the prometheus metrics
 	apiServer = &http.Server{Addr: ":10000", Handler: router}
 	go func() {
 		if err := apiServer.ListenAndServe(); err != nil {

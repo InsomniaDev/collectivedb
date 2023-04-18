@@ -74,6 +74,8 @@ func main() {
 		}
 	}
 	api.Start()
+
+	// TODO: add this prometheus integration for the grpc server - https://github.com/grpc-ecosystem/go-grpc-middleware
 	grpcServer.Serve(lis)
 }
 

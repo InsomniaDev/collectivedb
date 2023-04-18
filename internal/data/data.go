@@ -11,6 +11,25 @@ import (
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/proto/client"
 	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	storeDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "data_update",
+		Help: "Gauge of the data as it is updated",
+	})
+
+	retrieveDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "data_retrieval",
+		Help: "Gauge of the data as it is retrieved",
+	})
+
+	deleteDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "data_deletion",
+		Help: "Gauge of the data as it is deleted",
+	})
 )
 
 func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) error {
@@ -108,8 +127,11 @@ func DistributeData(key, bucket *string, data *[]byte, secondaryNodeGroup int) e
 // StoreDataInDatabase
 // will store the provided data into the database after checking if it requires an update first
 // if the data belongs with a different replica group, it will send the update request to that replica group
-// 		Returns a boolean on if it was updated successfully and the key updated
+//
+//	Returns a boolean on if it was updated successfully and the key updated
 func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, secondaryNodeGroup int) (bool, *string) {
+	// Update the prometheus metric for the data storage
+	storeDataProm.Inc()
 
 	ackLevel := os.Getenv("COLLECTIVE_ACK_LEVEL")
 	if ackLevel == "" {
@@ -143,7 +165,7 @@ func StoreDataInDatabase(key, bucket *string, data *[]byte, replicaStore bool, s
 	// This data exists already
 	// Determine what node the data is on, if the data does exist on a node
 	dataVolume := node.RetrieveFromDataDictionary(key)
-	
+
 	// Determine if there is a secondaryNodeGroup for the data if it is exists
 	secondaryNodeGroup = node.RetrieveSecondaryNodeGroupForDataEntry(&dataVolume.ReplicaNodeGroup)
 
@@ -206,6 +228,9 @@ func RetrieveAllReplicaData(inputData chan<- *types.StoredData) {
 
 // RetrieveDataFromDatabase
 func RetrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
+	// update the prometheus metric for retrieval
+	retrieveDataProm.Inc()
+
 	if exists, value := database.Get(key, bucket); exists {
 		return exists, value
 	}
@@ -244,6 +269,9 @@ func RetrieveDataFromDatabase(key, bucket *string) (bool, *[]byte) {
 }
 
 func DeleteDataFromDatabase(key, bucket *string) (bool, error) {
+	// update the prometheus metric for deletion
+	deleteDataProm.Inc()
+
 	if deleted, err := database.Delete(key, bucket); deleted {
 		return true, err
 	} else if err != nil {

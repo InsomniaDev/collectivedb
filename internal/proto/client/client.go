@@ -10,6 +10,8 @@ import (
 	"github.com/insomniadev/collective-db/internal/proto"
 	"github.com/insomniadev/collective-db/internal/types"
 	"github.com/insomniadev/collective-db/resources"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,6 +19,21 @@ import (
 
 var (
 	tls = ""
+
+	storeDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "data_update",
+		Help: "Gauge of the data as it is updated",
+	})
+
+	retrieveDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "data_retrieval",
+		Help: "Gauge of the data as it is retrieved",
+	})
+
+	deleteDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "data_deletion",
+		Help: "Gauge of the data as it is deleted",
+	})
 )
 
 func init() {
