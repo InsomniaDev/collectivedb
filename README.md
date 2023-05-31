@@ -1,4 +1,4 @@
-# collective-db
+# collectivedb
 Collective Intelligence Database
 
 

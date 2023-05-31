@@ -6,11 +6,11 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	database "github.com/insomniadev/collective-db/internal/database"
-	"github.com/insomniadev/collective-db/internal/node"
-	"github.com/insomniadev/collective-db/internal/proto"
-	"github.com/insomniadev/collective-db/internal/proto/client"
-	"github.com/insomniadev/collective-db/internal/types"
+	database "github.com/insomniadev/collectivedb/internal/database"
+	"github.com/insomniadev/collectivedb/internal/node"
+	"github.com/insomniadev/collectivedb/internal/proto"
+	"github.com/insomniadev/collectivedb/internal/proto/client"
+	"github.com/insomniadev/collectivedb/internal/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

@@ -3,7 +3,7 @@ package node
 import (
 	"sync"
 
-	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/insomniadev/collectivedb/internal/types"
 )
 
 // TODO: Set an overall environment level scenario here

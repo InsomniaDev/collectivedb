@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/insomniadev/collective-db/internal/proto"
-	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/insomniadev/collectivedb/internal/proto"
+	"github.com/insomniadev/collectivedb/internal/types"
 )
 
 func ConvertDataUpdatesToControlDataUpdate(incomingData *proto.DataUpdates) (convertedData *types.DataUpdate) {

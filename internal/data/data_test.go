@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/insomniadev/collective-db/internal/node"
-	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/insomniadev/collectivedb/internal/node"
+	"github.com/insomniadev/collectivedb/internal/types"
 )
 
 func TestStoreDataInDatabase(t *testing.T) {

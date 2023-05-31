@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/insomniadev/collective-db/api"
-	"github.com/insomniadev/collective-db/internal/collective"
-	"github.com/insomniadev/collective-db/internal/proto"
-	"github.com/insomniadev/collective-db/internal/proto/server"
-	"github.com/insomniadev/collective-db/resources"
+	"github.com/insomniadev/collectivedb/api"
+	"github.com/insomniadev/collectivedb/internal/collective"
+	"github.com/insomniadev/collectivedb/internal/proto"
+	"github.com/insomniadev/collectivedb/internal/proto/server"
+	"github.com/insomniadev/collectivedb/resources"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -59,7 +59,7 @@ func main() {
 	}
 	grpcServer = grpc.NewServer(opts...)
 	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
-	
+
 	quitAfterTenSeconds := 0
 	for {
 		if collective.IsActive() {

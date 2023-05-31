@@ -1,4 +1,4 @@
-module github.com/insomniadev/collective-db
+module github.com/insomniadev/collectivedb
 
 go 1.19
 

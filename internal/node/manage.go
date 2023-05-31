@@ -1,9 +1,9 @@
 package node
 
 import (
-	"github.com/insomniadev/collective-db/internal/proto"
-	"github.com/insomniadev/collective-db/internal/proto/client"
-	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/insomniadev/collectivedb/internal/proto"
+	"github.com/insomniadev/collectivedb/internal/proto/client"
+	"github.com/insomniadev/collectivedb/internal/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

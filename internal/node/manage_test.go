@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/insomniadev/collectivedb/internal/types"
 )
 
 func Test_removeFromDictionarySlice(t *testing.T) {

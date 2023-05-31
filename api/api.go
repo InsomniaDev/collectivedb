@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/insomniadev/collective-db/internal/data"
+	"github.com/insomniadev/collectivedb/internal/data"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

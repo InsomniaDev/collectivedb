@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/insomniadev/collective-db/internal/proto"
-	"github.com/insomniadev/collective-db/internal/types"
-	"github.com/insomniadev/collective-db/resources"
+	"github.com/insomniadev/collectivedb/internal/proto"
+	"github.com/insomniadev/collectivedb/internal/types"
+	"github.com/insomniadev/collectivedb/resources"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc"

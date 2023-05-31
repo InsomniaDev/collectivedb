@@ -6,12 +6,12 @@ import (
 	"log"
 	"sync"
 
-	"github.com/insomniadev/collective-db/internal/data"
-	"github.com/insomniadev/collective-db/internal/database"
-	"github.com/insomniadev/collective-db/internal/node"
-	"github.com/insomniadev/collective-db/internal/proto"
-	"github.com/insomniadev/collective-db/internal/proto/client"
-	"github.com/insomniadev/collective-db/internal/types"
+	"github.com/insomniadev/collectivedb/internal/data"
+	"github.com/insomniadev/collectivedb/internal/database"
+	"github.com/insomniadev/collectivedb/internal/node"
+	"github.com/insomniadev/collectivedb/internal/proto"
+	"github.com/insomniadev/collectivedb/internal/proto/client"
+	"github.com/insomniadev/collectivedb/internal/types"
 )
 
 // Server type for working with the gRPC server
