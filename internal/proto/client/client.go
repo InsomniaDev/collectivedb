@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -21,17 +22,17 @@ var (
 	tls = ""
 
 	storeDataProm = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "data_update",
+		Name: "client_data_update",
 		Help: "Gauge of the data as it is updated",
 	})
 
 	retrieveDataProm = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "data_retrieval",
+		Name: "client_data_retrieval",
 		Help: "Gauge of the data as it is retrieved",
 	})
 
 	deleteDataProm = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "data_deletion",
+		Name: "client_data_deletion",
 		Help: "Gauge of the data as it is deleted",
 	})
 )
@@ -62,6 +63,7 @@ func getConnectionOptions(ipAddress *string) *[]grpc.DialOption {
 // Is responsible for syncing all collective data in the cluster to this new node
 func SyncCollectiveRequest(ipAddress *string, data chan<- *types.DataUpdate) error {
 	// Setup the client
+	log.Println(fmt.Scanf("SyncCollectiveRequest:%s", ipAddress))
 	connOpts := getConnectionOptions(ipAddress)
 	conn, err := grpc.Dial(*ipAddress, *connOpts...)
 	if err != nil {
