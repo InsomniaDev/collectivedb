@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -63,7 +62,11 @@ func getConnectionOptions(ipAddress *string) *[]grpc.DialOption {
 // Is responsible for syncing all collective data in the cluster to this new node
 func SyncCollectiveRequest(ipAddress *string, data chan<- *types.DataUpdate) error {
 	// Setup the client
-	log.Println(fmt.Scanf("SyncCollectiveRequest:%s", ipAddress))
+	log.Println("SyncCollectiveRequest:", *ipAddress)
+	if ipAddress == nil {
+		log.Println("return since there is an empty ipaddress")
+		return nil
+	}
 	connOpts := getConnectionOptions(ipAddress)
 	conn, err := grpc.Dial(*ipAddress, *connOpts...)
 	if err != nil {

@@ -249,7 +249,7 @@ func Test_distributeData(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "1",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 		},
@@ -258,7 +258,7 @@ func Test_distributeData(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "2",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 		},

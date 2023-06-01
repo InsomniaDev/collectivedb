@@ -31,7 +31,7 @@ func init() {
 	// 	return s
 	// }
 
-	lis, err := net.Listen("tcp", "localhost:9090")
+	lis, err := net.Listen("tcp", "localhost:9091")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -42,8 +42,8 @@ func init() {
 
 	// Initial setup
 	node.Active = true
-	node.Collective.IpAddress = "127.0.0.1:9090"
-	node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress = "127.0.0.1:9090"
+	node.Collective.IpAddress = "127.0.0.1:9091"
+	node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress = "127.0.0.1:9091"
 }
 
 func Test_createUuid(t *testing.T) {
@@ -76,11 +76,11 @@ func Test_determineIpAddress(t *testing.T) {
 		},
 		{
 			name: "Environment",
-			want: "192-168-1-1.default.pod.cluster.local:9090",
+			want: "192-168-1-1.default.pod.cluster.local:9091",
 		},
 		{
 			name: "Kubernetes",
-			want: "192-168-1-1.default.pod.cluster.local:9090",
+			want: "192-168-1-1.default.pod.cluster.local:9091",
 		},
 	}
 	for _, tt := range tests {
@@ -110,15 +110,15 @@ func Test_determineReplicas(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "1",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 				{
 					NodeId:    "2",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 				{
 					NodeId:    "3",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 			FullGroup: true,
@@ -241,7 +241,7 @@ func Test_removeDataFromSecondaryNodeGroup(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "1",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 			SecondaryNodeGroup: 2,
@@ -251,7 +251,7 @@ func Test_removeDataFromSecondaryNodeGroup(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "2",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 		},
@@ -310,7 +310,7 @@ func Test_terminateReplicas(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "1",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 			SecondaryNodeGroup: 2,
@@ -320,7 +320,7 @@ func Test_terminateReplicas(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    "2",
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 		},
@@ -350,7 +350,7 @@ func Test_retrieveDataDictionary(t *testing.T) {
 	os.Setenv("COLLECTIVE_MAIN_BROKERS", "")
 
 	node.Collective = types.Controller{}
-	node.Collective.IpAddress = "127.0.0.1:9090"
+	node.Collective.IpAddress = "127.0.0.1:9091"
 	newCluster := []types.ReplicaGroup{
 		{
 			ReplicaNodeGroup:   1,
@@ -358,7 +358,7 @@ func Test_retrieveDataDictionary(t *testing.T) {
 			ReplicaNodes: []types.Node{
 				{
 					NodeId:    node.Collective.NodeId,
-					IpAddress: "127.0.0.1:9090",
+					IpAddress: "127.0.0.1:9091",
 				},
 			},
 			FullGroup: false,
@@ -374,7 +374,7 @@ func Test_retrieveDataDictionary(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			node.Collective.IpAddress = "127.0.0.1:9090"
+			node.Collective.IpAddress = "127.0.0.1:9091"
 			retrieveDataDictionary()
 			switch tt.name {
 			case "New_Cluster":

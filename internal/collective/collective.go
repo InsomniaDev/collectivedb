@@ -138,7 +138,7 @@ func determineIpAddress() string {
 		defer conn.Close()
 
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
-		return localAddr.IP.String() + ":9090"
+		return localAddr.IP.String() + ":9091"
 	}
 
 	// determine if this pod is running in k8s
@@ -163,7 +163,7 @@ func determineIpAddress() string {
 
 	// This pod has a search dns route for k8s, compose the dns route for the pod
 	if isInK8s, svcValue := checkIfK8s(); isInK8s {
-		node.Collective.KubeServiceDns = svcValue + ":9090"
+		node.Collective.KubeServiceDns = svcValue + ":9091"
 		log.Printf("Discovered to be part of a kubernetes service: %s", node.Collective.KubeServiceDns)
 
 		// set as kubernetes being active
@@ -186,7 +186,7 @@ func determineIpAddress() string {
 		formattedDnsRoute := strings.Replace(svcValue, ".svc.", ".pod.", -1)
 
 		dnsLocalIp := fmt.Sprintf("%s.%s", formattedIp, formattedDnsRoute)
-		return dnsLocalIp + ":9090"
+		return dnsLocalIp + ":9091"
 	}
 
 	envIp = os.Getenv("COLLECTIVE_IP")

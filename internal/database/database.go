@@ -29,7 +29,7 @@ func getDatabase(bucket *string) *bolt.DB {
 		}
 	}
 
-	connection, err := bolt.Open(fmt.Sprintf("/data/%s.db", *bucket), 0600, &bolt.Options{Timeout: 1 * time.Second})
+	connection, err := bolt.Open(fmt.Sprintf("%s.db", *bucket), 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatal(err)
 	}
