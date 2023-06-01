@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -13,10 +14,14 @@ import (
 var (
 	// list of open database connections, each bucket translates to a database
 	connections map[*string]*bolt.DB
+
+	baseDirectory string
 )
 
 func init() {
 	connections = make(map[*string]*bolt.DB)
+
+	baseDirectory = os.Getenv("COLLECTIVE_DATA_DIRECTORY")
 }
 
 // getDatabase
@@ -29,7 +34,7 @@ func getDatabase(bucket *string) *bolt.DB {
 		}
 	}
 
-	connection, err := bolt.Open(fmt.Sprintf("%s.db", *bucket), 0600, &bolt.Options{Timeout: 1 * time.Second})
+	connection, err := bolt.Open(fmt.Sprintf(baseDirectory+"%s.db", *bucket), 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatal(err)
 	}

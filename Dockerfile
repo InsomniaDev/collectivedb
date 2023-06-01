@@ -15,6 +15,7 @@ LABEL maintainer="Insomnia Development <insomniadevlabs@gmail.com>"
 # COPY --from=builder /go/src/github.com/insomniadev/collectivedb/collectivedb /collectivedb
 
 COPY collectivedb collectivedb
+ENV COLLECTIVE_DATA_DIRECTORY="/data/"
 
 ENTRYPOINT [ "/collectivedb" ]
 EXPOSE 10000
