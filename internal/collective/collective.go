@@ -1,14 +1,12 @@
 package collective
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"net"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -122,12 +120,12 @@ func determineIpAddress() string {
 		return envIp
 	}
 
-	resolverFile := "/etc/resolv.conf"
+	// resolverFile := "/etc/resolv.conf"
 	// Check if resolver file is provided
-	envResolverFile := os.Getenv("COLLECTIVE_RESOLVER_FILE")
-	if envResolverFile != "" {
-		resolverFile = envResolverFile
-	}
+	// envResolverFile := os.Getenv("COLLECTIVE_RESOLVER_FILE")
+	// if envResolverFile != "" {
+	// 	resolverFile = envResolverFile
+	// }
 
 	// function to return the local ip address for the network
 	discoverLocalIp := func() string {
@@ -138,56 +136,107 @@ func determineIpAddress() string {
 		defer conn.Close()
 
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
+		log.Println("Local IP: " + localAddr.IP.String() + ":9091")
 		return localAddr.IP.String() + ":9091"
 	}
 
-	// determine if this pod is running in k8s
-	checkIfK8s := func() (bool, string) {
-		readfile, err := os.Open(resolverFile)
-		if err != nil {
-			return false, ""
-		}
-		searchRegexp := regexp.MustCompile(`^\s*search\s*(([^\s]+\s*)*)$`)
-		fileScanner := bufio.NewScanner(readfile)
-		fileScanner.Split(bufio.ScanLines)
-		for fileScanner.Scan() {
+	// // determine if this pod is running in k8s
+	// checkIfK8s := func() (bool, string) {
+	// 	readfile, err := os.Open(resolverFile)
+	// 	if err != nil {
+	// 		return false, ""
+	// 	}
+	// 	searchRegexp := regexp.MustCompile(`^\s*search\s*(([^\s]+\s*)*)$`)
+	// 	fileScanner := bufio.NewScanner(readfile)
+	// 	fileScanner.Split(bufio.ScanLines)
+	// 	for fileScanner.Scan() {
 
-			match := searchRegexp.FindSubmatch([]byte(fileScanner.Text()))
-			if match != nil && strings.Contains(string(match[1]), "svc.cluster.local") {
-				matchedStrings := strings.Split(string(match[1]), " ")
-				return true, string(matchedStrings[0])
-			}
-		}
-		return false, ""
-	}
+	// 		match := searchRegexp.FindSubmatch([]byte(fileScanner.Text()))
+	// 		if match != nil && strings.Contains(string(match[1]), "svc.cluster.local") {
+	// 			matchedStrings := strings.Split(string(match[1]), " ")
+	// 			return true, string(matchedStrings[0])
+	// 		}
+	// 	}
+	// 	return false, ""
+	// }
 
-	// This pod has a search dns route for k8s, compose the dns route for the pod
-	if isInK8s, svcValue := checkIfK8s(); isInK8s {
-		node.Collective.KubeServiceDns = svcValue + ":9091"
-		log.Printf("Discovered to be part of a kubernetes service: %s", node.Collective.KubeServiceDns)
+	// // This pod has a search dns route for k8s, compose the dns route for the pod
+	// if isInK8s, svcValue := checkIfK8s(); isInK8s {
+	// 	// node.Collective.KubeServiceDns = svcValue + ":9091"
+	// 	log.Printf("Discovered to be part of a kubernetes service: %s", node.Collective.KubeServiceDns)
 
-		// set as kubernetes being active
-		node.Collective.KubeDeployed = true
+	// 	// set as kubernetes being active
+	// 	node.Collective.KubeDeployed = true
 
-		// Need to get the $HOSTNAME env variable here, then create the connection to it
-		// 	split by the periods to get the namespace - default.svc.cluster.local
-		// 	convert into the dns route for a pod:
-		// 		pod-ip-address.my-namespace.pod.cluster-domain.example
-		//		10-42-0-180.default.pod.cluster.local
+	// 	// // get hostname of the pod from the environment variable HOSTNAME
+	// 	// hostName := os.Getenv("HOSTNAME")
+	// 	// // split the hostname by '-' and take the first value
+	// 	// hostNameSplit := strings.Split(hostName, "-")[0]
 
-		// discover the local ip address
-		localIpAddress := envIp
-		if localIpAddress == "" {
-			localIpAddress = discoverLocalIp()
-		}
+	// 	// // grab the environment variable that starts wtih the hostNameSplit and ends with _SERVICE_HOST
+	// 	// node.Collective.KubeServiceDns = os.Getenv(hostNameSplit + "_SERVICE_HOST") + ":9091"
 
-		// format the ip and convert svc to pod
-		formattedIp := strings.Replace(localIpAddress, ".", "-", -1)
-		formattedDnsRoute := strings.Replace(svcValue, ".svc.", ".pod.", -1)
+	// 	// get all of the environment variables and then test each service
+	// 	env := os.Environ()
+	// 	for _, envVar := range env {
+	// 		envVarSplit := strings.Split(envVar, "=")
+	// 		envNameArray := strings.Split(envVarSplit[0], "_")
 
-		dnsLocalIp := fmt.Sprintf("%s.%s", formattedIp, formattedDnsRoute)
-		return dnsLocalIp + ":9091"
-	}
+	// 		// Check and confirm that this matches a service setup, ie. 'COLLECTIVE_PORT', and that it isn't the main KUBERNETES_PORT
+	// 		if envVarSplit[0] != "KUBERNETES_PORT" && len(envNameArray) == 2 && envNameArray[1] == "PORT" {
+	// 			// TODO: check if this service has collective running on it, if it does then we will say this is the service we are using
+	// 			// 		otherwise we will continue to the next service
+
+	// 			// send a http request to the value of the env variable to see if it is running collective
+	// 			// 		if it is, then we will use this service
+	// 			// 		if it isn't, then we will continue to the next service
+
+	// 			// replace the tcp:// in the env variable with http://
+	// 			requestUrl := strings.Replace(envVarSplit[1], "tcp://", "http://", -1)
+
+	// 			// create a http request to the service
+	// 			req, err := http.NewRequest("GET", requestUrl+"/collective", nil)
+	// 			if err != nil {
+	// 				log.Println(err)
+	// 				continue
+	// 			}
+
+	// 			// send the request
+	// 			client := &http.Client{}
+	// 			resp, err := client.Do(req)
+	// 			if err != nil {
+	// 				log.Println(err)
+	// 				continue
+	// 			}
+
+	// 			// if the response is a 200, then we will use this service
+	// 			if resp.StatusCode == 200 {
+	// 				node.Collective.KubeServiceDns = requestUrl
+	// 				log.Printf("Discovered to be part of a kubernetes service: %s", node.Collective.KubeServiceDns)
+	// 				break
+	// 			}
+	// 		}
+	// 	}
+
+	// 	// Need to get the $HOSTNAME env variable here, then create the connection to it
+	// 	// 	split by the periods to get the namespace - default.svc.cluster.local
+	// 	// 	convert into the dns route for a pod:
+	// 	// 		pod-ip-address.my-namespace.pod.cluster-domain.example
+	// 	//		10-42-0-180.default.pod.cluster.local
+
+	// 	// discover the local ip address
+	// 	localIpAddress := envIp
+	// 	if localIpAddress == "" {
+	// 		localIpAddress = discoverLocalIp()
+	// 	}
+
+	// 	// format the ip and convert svc to pod
+	// 	formattedIp := strings.Replace(localIpAddress, ".", "-", -1)
+	// 	formattedDnsRoute := strings.Replace(svcValue, ".svc.", ".pod.", -1)
+
+	// 	dnsLocalIp := fmt.Sprintf("%s.%s", formattedIp, formattedDnsRoute)
+	// 	return dnsLocalIp + ":9091"
+	// }
 
 	envIp = os.Getenv("COLLECTIVE_IP")
 	// FIXME: Take this envIp and create a POST request to the leader node to respond with what our IP address is

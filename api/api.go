@@ -21,6 +21,7 @@ var apiServer *http.Server
 
 func Start() {
 	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/collective", collectiveCheck)
 	router.HandleFunc("/get/{id}/{database}", getWithDatabase)
 	router.HandleFunc("/get/{id}", getByKey)
 	router.HandleFunc("/update", update)
@@ -45,6 +46,11 @@ func Stop() {
 		// handle err
 		panic(err)
 	}
+}
+
+// confirm that this is a collective node by returning a 200
+func collectiveCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
 }
 
 func getWithDatabase(w http.ResponseWriter, r *http.Request) {
