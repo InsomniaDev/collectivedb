@@ -21,17 +21,17 @@ var (
 	tls = ""
 
 	storeDataProm = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "client_data_update",
+		Name: "collectivedb_client_data_update",
 		Help: "Gauge of the data as it is updated",
 	})
 
 	retrieveDataProm = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "client_data_retrieval",
+		Name: "collectivedb_client_data_retrieval",
 		Help: "Gauge of the data as it is retrieved",
 	})
 
 	deleteDataProm = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "client_data_deletion",
+		Name: "collectivedb_client_data_deletion",
 		Help: "Gauge of the data as it is deleted",
 	})
 )
