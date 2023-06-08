@@ -4,5 +4,5 @@ podman build --platform=linux/amd64 -t collective .
 podman tag collective 192.168.1.19:30500/collective:latest
 podman push 192.168.1.19:30500/collective:latest --tls-verify=false
 
-COLLECTIVE_CONTAINER=`kubectl -n collective get pods | grep collective | awk '{ print $1 }'`
-kubectl -n collective delete pod $COLLECTIVE_CONTAINER
+COLLECTIVE_CONTAINER=`kubectl get pods | grep collective | awk '{ print $1 }'`
+kubectl delete pod $COLLECTIVE_CONTAINER
