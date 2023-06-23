@@ -147,7 +147,6 @@ func delete(w http.ResponseWriter, r *http.Request) {
 	}
 	if err == nil {
 		w.Write([]byte(body.Key))
-		w.WriteHeader(200)
 		return
 	}
 	w.Write([]byte(fmt.Sprintf("failed to delete %s", body.Key)))
