@@ -105,7 +105,6 @@ func update(w http.ResponseWriter, r *http.Request) {
 	}
 	if updated {
 		w.Write([]byte(body.Key))
-		w.WriteHeader(200)
 		return
 	}
 	w.Write([]byte(fmt.Sprintf("failed to update %s", body.Key)))

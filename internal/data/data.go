@@ -16,17 +16,17 @@ import (
 )
 
 var (
-	storeDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+	storeDataProm = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "collectivedb_data_update",
 		Help: "Gauge of the data as it is updated",
 	})
 
-	retrieveDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+	retrieveDataProm = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "collectivedb_data_retrieval",
 		Help: "Gauge of the data as it is retrieved",
 	})
 
-	deleteDataProm = promauto.NewGauge(prometheus.GaugeOpts{
+	deleteDataProm = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "collectivedb_data_deletion",
 		Help: "Gauge of the data as it is deleted",
 	})

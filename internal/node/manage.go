@@ -9,12 +9,12 @@ import (
 )
 
 var (
-	collectiveUpdates = promauto.NewGauge(prometheus.GaugeOpts{
+	collectiveUpdates = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "collectivedb_collective_replica_updates",
 		Help: "The total number of replica events",
 	})
 
-	dataUpdates = promauto.NewGauge(prometheus.GaugeOpts{
+	dataUpdates = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "collectivedb_collective_data_updates",
 		Help: "The total number of replica events",
 	})
