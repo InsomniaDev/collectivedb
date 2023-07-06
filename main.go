@@ -60,6 +60,13 @@ func main() {
 	grpcServer = grpc.NewServer(opts...)
 	proto.RegisterRouteGuideServer(grpcServer, server.NewGrpcServer())
 
+	api.Start()
+
+	// TODO: add this prometheus integration for the grpc server - https://github.com/grpc-ecosystem/go-grpc-middleware
+	go grpcServer.Serve(lis)
+
+	collective.StartDB()
+	
 	quitAfterTenSeconds := 0
 	for {
 		if collective.IsActive() {
@@ -73,10 +80,6 @@ func main() {
 			log.Println("initializing")
 		}
 	}
-	api.Start()
-
-	// TODO: add this prometheus integration for the grpc server - https://github.com/grpc-ecosystem/go-grpc-middleware
-	grpcServer.Serve(lis)
 }
 
 // set a block to catch a SIG KILL or SIG TERM signal that will then fire off the terminateReplicas functionality

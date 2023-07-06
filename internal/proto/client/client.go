@@ -77,7 +77,7 @@ func SyncCollectiveRequest(ipAddress *string, data chan<- *types.DataUpdate) err
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if syncClient, err := client.SyncCollectiveRequest(ctx, &proto.SyncIp{IpAddress: *ipAddress}); err != nil {
+	if syncClient, err := client.SyncCollectiveRequest(ctx, &proto.SyncIp{IpAddress: *ipAddress}); err == nil {
 		for {
 			in, err := syncClient.Recv()
 			if err == io.EOF {
@@ -91,6 +91,8 @@ func SyncCollectiveRequest(ipAddress *string, data chan<- *types.DataUpdate) err
 			}
 			data <- ConvertDataUpdatesToControlDataUpdate(in)
 		}
+	} else {
+		log.Println(err)
 	}
 
 	return nil

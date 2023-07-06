@@ -29,7 +29,7 @@ var (
 //	Get IP Address
 //	Determine replica nodes
 //	Get Node List
-func init() {
+func StartDB() {
 
 	// Allow at some point for the node to start back up and begin an update task for the data
 	// nodeData := "node"

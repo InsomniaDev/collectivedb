@@ -59,6 +59,8 @@ func (s *grpcServer) SyncCollectiveRequest(syncIpAddress *proto.SyncIp, stream p
 	// Make a channel that the process can yield the discovered data through
 	storedData := make(chan *proto.DataUpdates)
 
+	log.Println("SyncCollectiveRequest server request has arrived")
+
 	// Setup a process to wait for the returned data
 	var wg sync.WaitGroup
 
@@ -71,7 +73,7 @@ func (s *grpcServer) SyncCollectiveRequest(syncIpAddress *proto.SyncIp, stream p
 			if data != nil {
 				if err = stream.Send(data); err != nil {
 					// Stop processing since we hit an error
-					log.Println("SyncCollectiveRequest: ", err)
+					log.Println("SyncCollectiveRequest error: ", err)
 					return
 				}
 			} else {
@@ -119,6 +121,7 @@ func (s *grpcServer) SyncCollectiveRequest(syncIpAddress *proto.SyncIp, stream p
 		}
 	}
 	node.CollectiveMemoryMutex.RUnlock()
+	log.Println("All data has been sent")
 	storedData <- nil
 
 	// Wait until all stream data has been sent
