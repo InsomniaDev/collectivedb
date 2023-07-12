@@ -27,7 +27,7 @@ func Start() {
 	router.HandleFunc("/update", update)
 	router.HandleFunc("/delete", delete)
 	router.Handle("/metrics", promhttp.Handler()) // Handler for the prometheus metrics
-	apiServer = &http.Server{Addr: ":10000", Handler: router}
+	apiServer = &http.Server{Addr: ":9090", Handler: router}
 	go func() {
 		if err := apiServer.ListenAndServe(); err != nil {
 			// handle err

@@ -18,6 +18,6 @@ COPY collectivedb collectivedb
 ENV COLLECTIVE_DATA_DIRECTORY="/data/"
 
 ENTRYPOINT [ "/collectivedb" ]
-EXPOSE 10000
+EXPOSE 9090
 EXPOSE 9091
 VOLUME /data

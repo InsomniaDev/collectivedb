@@ -23,8 +23,7 @@ var (
 	tls      = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
 	certFile = flag.String("cert_file", "", "The TLS cert file")
 	keyFile  = flag.String("key_file", "", "The TLS key file")
-	port     = flag.Int("port", 9090, "The port for data insertion; defaults 9090")
-	nodePort = flag.Int("nodePort", 9091, "The port for collective communication; defaults 9091")
+	port     = flag.Int("port", 9091, "The port for data insertion; defaults 9091")
 
 	sigs       = make(chan os.Signal, 1)
 	grpcServer *grpc.Server
@@ -66,7 +65,7 @@ func main() {
 	go grpcServer.Serve(lis)
 
 	collective.StartDB()
-	
+
 	quitAfterTenSeconds := 0
 	for {
 		if collective.IsActive() {

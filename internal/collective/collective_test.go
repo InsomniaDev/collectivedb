@@ -43,7 +43,18 @@ func init() {
 	// Initial setup
 	node.Active = true
 	node.Collective.IpAddress = "127.0.0.1:9091"
-	node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress = "127.0.0.1:9091"
+	node.Collective.Data = types.DataDictionary{
+		CollectiveNodes: []types.ReplicaGroup{
+			{
+				ReplicaNodes: []types.Node{
+					{
+						IpAddress: "127.0.0.1:9091",
+					},
+				},
+			},
+		},
+	}
+	// node.Collective.Data.CollectiveNodes[0].ReplicaNodes[0].IpAddress = "127.0.0.1:9091"
 }
 
 func Test_createUuid(t *testing.T) {
@@ -347,7 +358,7 @@ func Test_terminateReplicas(t *testing.T) {
 }
 
 func Test_retrieveDataDictionary(t *testing.T) {
-	os.Setenv("COLLECTIVE_MAIN_BROKERS", "")
+	os.Setenv("COLLECTIVE_MAIN_BROKERS", "127.0.0.1:9091")
 
 	node.Collective = types.Controller{}
 	node.Collective.IpAddress = "127.0.0.1:9091"

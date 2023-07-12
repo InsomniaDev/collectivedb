@@ -82,11 +82,13 @@ func SyncCollectiveRequest(ipAddress *string, data chan<- *types.DataUpdate) err
 			in, err := syncClient.Recv()
 			if err == io.EOF {
 				// read done.
-				data <- nil
+				// Need to send this data within a go function so that it will return from the function, this might also make this a thread that will need to be cleaned up in the future
+				// FIXME: Is this a thread that needs to be cleaned up and constantly running in the background?
+				go func() { data <- nil }()
 				return nil
 			}
 			if err != nil {
-				data <- nil
+				go func() { data <- nil }()
 				return err
 			}
 			data <- ConvertDataUpdatesToControlDataUpdate(in)
