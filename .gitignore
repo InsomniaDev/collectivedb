@@ -17,3 +17,5 @@
 **/database.db
 **/*.db
 collectivedb
+deployDocker.sh
+resources/x509/*
